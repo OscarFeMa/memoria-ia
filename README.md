@@ -386,3 +386,80 @@ La clave no es almacenar más información.
 Es almacenar bajo contrato.
 
 — GPT4
+## SÍNTESIS MULTI-IA — Fase 2 Completada (2026-02-13)
+
+### Estado del proyecto
+fase_actual: Contrato de Memoria v1.0 — listo para implementación
+participantes: Claude, GPT-4, Copilot, Gemini, Kimi
+metodo: análisis paralelo independiente + consolidación
+
+---
+
+### Decisiones adoptadas por consenso (5/5)
+- Stack backend: PostgreSQL + pgvector + Supabase
+- Protocolo de escritura: append-only (nunca UPDATE directo)
+- Schema: field_key como enum cerrado (vocabulario fijo)
+- Política de conflictos: registro estructurado, nunca eliminación
+- README de GitHub: degradar a bootstrap de emergencia
+- Fuente de verdad: Supabase (PostgreSQL)
+
+### Decisiones adoptadas por mayoría (3-4/5)
+- Control de versión: schema_hash por entrada (propuesto por GPT-4)
+- Detección de deriva semántica: similitud coseno con umbral ~0.75-0.88
+- Resolución de conflictos: confidence_score > recencia > revisión humana
+- Compresión adaptativa: niveles jerárquicos según ventana de contexto
+
+---
+
+### Aportaciones distintivas por IA
+
+Claude (Anthropic)
+- Identificó deriva semántica como riesgo silencioso principal
+- Propuso índice único parcial en PostgreSQL como garantía técnica
+- Diseñó trigger SQL de detección de drift via embeddings
+
+GPT-4 (OpenAI)  
+- Propuso schema_hash en lugar de schema_version string
+  → Impide escrituras de IAs con versiones de contrato desincronizadas
+- Formalizó tipos semánticos cerrados (fact/summary/entity/assertion/flag)
+- Definió umbrales coseno: ≥0.88 equivalente / 0.20-0.88 compatible / <0.20 conflicto
+
+Copilot (Microsoft)
+- Propuso niveles de compresión 0-3 recalculados automáticamente
+- Énfasis en contrato explícito como primera línea de defensa
+- Definió semantic_hash para prevención de duplicados
+
+Gemini (Google)
+- Identificó latencia inferencia vs recuperación como riesgo operativo
+- Énfasis en interoperabilidad entre backends (Pinecone/Milvus alternativo)
+- Única en proponer PoC cruzado: escritura IA-A → recuperación IA-B
+
+Kimi (Moonshot AI)
+- Única en identificar asimetría de ventana de contexto como riesgo estructural
+- Propuso arquitectura jerárquica: short_summary (200K) / full_summary (2M)
+- Detectó inconsistencia de timestamps entre modelos como gap no resuelto
+
+---
+
+### Gaps no resueltos — requieren decisión de Oscar
+1. Timestamps: ¿UTC forzado o cada IA declara su zona?
+2. Embedding model: ¿qué modelo genera los vectores? ¿uno centralizado o cada IA el suyo?
+3. Quién escribe: ¿las IAs escriben directamente o solo el usuario valida y escribe?
+4. schema_hash: ¿quién es la autoridad que versiona el contrato?
+
+---
+
+### Evidencia de deriva semántica en este propio archivo
+Este README contiene 4 formatos de análisis distintos (YAML, Markdown
+estructurado, texto plano, headers numerados) escritos por 4 IAs sin
+schema común. Es la demostración empírica más directa de por qué
+el Contrato v1.0 es necesario.
+
+---
+
+### Próximo paso
+Crear tabla memory_entries en Supabase con schema_hash,
+migrar los campos actuales, y validar endpoint de escritura
+con una sola IA antes de conectar las cinco en paralelo.
+
+proyecto_actual: Implementar Contrato de Memoria v1.0 en Supabase
