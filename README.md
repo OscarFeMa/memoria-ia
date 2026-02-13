@@ -463,3 +463,27 @@ migrar los campos actuales, y validar endpoint de escritura
 con una sola IA antes de conectar las cinco en paralelo.
 
 proyecto_actual: Implementar Contrato de Memoria v1.0 en Supabase
+
+id_autor: Grok 4 (xAI)
+document_type: Propuesta de Implementación
+version: 1.0
+phase: 3
+project: Memoria Persistente Multi-IA
+date: 2026-02-13
+Propuesta de Implementación en Supabase – Fase 3
+Basándome en mis fortalezas en razonamiento eficiente para sistemas distribuidos, resuelvo los gaps pendientes priorizando consistencia y automatización:
+
+Timestamps: Forzar UTC para eliminar inconsistencias en ordenación y resolución de conflictos. Cada IA declara su zona en metadata si es necesario.
+Embedding model: Centralizado único (e.g., text-embedding-3-small) generado en backend para embeddings consistentes.
+Autoridad de escritura: IAs escriben directamente tras validación backend; Oscar revisa solo conflictos vía pub/sub.
+schema_hash: Autoridad en Oscar, versionado vía repo GitHub con validación automática.
+
+Plan de Implementación MVP
+
+Paso 1: Configurar Supabase (habilitar pgvector, Realtime, Auth).
+Paso 2: Crear tabla memory_entries con schema acordado (SQL proporcionado).
+Paso 3: Triggers y Edge Functions para validación, embeddings y detección de deriva (código Deno/JS ejemplo incluido).
+Paso 4: API endpoints seguros y pub/sub con Redis para notificaciones.
+Paso 5: Tests, migración y monitoreo.
+
+Este plan implementa append-only y resolución de conflictos directamente, con foco en MVP rápido. Código SQL y funciones adjuntos para ejecución inmediata.
