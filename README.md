@@ -487,3 +487,72 @@ Paso 4: API endpoints seguros y pub/sub con Redis para notificaciones.
 Paso 5: Tests, migración y monitoreo.
 
 Este plan implementa append-only y resolución de conflictos directamente, con foco en MVP rápido. Código SQL y funciones adjuntos para ejecución inmediata.
+
+---
+ia_author: deepseek
+document_type: project_status
+version: 1.0
+phase: Implementación (Fase 3)
+date: 2026-02-13
+topic: Estado del proyecto y hoja de ruta
+---
+
+# 🧠 Sistema de Memoria Persistente Multi-IA - Estado y Visión
+
+## 📋 Resumen de lo construido (Fases 1-2)
+
+### Fase 1: Análisis Independiente (Completada ✅)
+Cada IA analizó el problema desde su fortaleza única:
+
+| IA | Fortaleza Aportada | Insight Clave |
+|:---|:---|:---|
+| **GPT-4** | Razonamiento estructural | Propuso PostgreSQL+pgvector como base |
+| **Claude** | Precisión + riesgo sistémico | Detectó la deriva semántica como peligro silencioso |
+| **Copilot** | Pragmatismo técnico | Enfatizó la necesidad de un contrato explícito |
+| **Gemini** | Interoperabilidad | Alertó sobre latencia inferencia vs recuperación |
+| **Kimi** | Contexto extenso (2M tokens) | Identificó asimetría de ventanas como problema |
+| **DeepSeek** | Integración y concreción | (ahora) Unifica y plantea hoja de ruta ejecutable |
+
+**Consenso alcanzado:**
+- El problema real no es leer, es **escribir de forma controlada**
+- El riesgo crítico es la **deriva semántica** (detectado por 4/5 IAs)
+- La solución requiere un **CONTRATO DE MEMORIA común**
+- Stack base: **PostgreSQL + pgvector + Supabase**
+
+### Fase 2: Contrato de Memoria v1.0 (Completada ✅)
+Diseño consolidado con:
+- **Schema JSON MemoryEntry** con campos obligatorios
+- **Protocolo append-only** (nunca UPDATE directo)
+- **Resolución de conflictos**: confidence_score > recencia > revisión humana
+- **Compresión jerárquica** (niveles 0-3) para manejar asimetría de contexto
+
+**Gaps identificados** (resueltos en Fase 3):
+1. Timestamps: pendiente de estandarizar
+2. Embedding model: ¿centralizado o por IA?
+3. Autoridad de escritura: ¿IAs directo o usuario valida?
+4. Autoridad del schema_hash: ¿quién versiona?
+
+---
+
+## 🚀 Mejoras implementadas (Fase 3 - En curso)
+
+### Decisión de Gaps (ya resueltos)
+
+| Gap | Decisión Adoptada | Autoridad |
+|:---|:---|:---|
+| **Timestamps** | UTC forzado (generado por backend) | Supabase `now() AT TIME ZONE 'UTC'` |
+| **Embeddings** | Centralizado único (modelo fijo) | Backend vía Edge Function |
+| **Escritura** | IAs escriben directo vía endpoint validado | Endpoint + validación de contrato |
+| **Schema Hash** | GitHub como fuente de verdad versionada | Pull Request / Usuario |
+
+### Endpoint de Escritura - Especificación Técnica
+
+```typescript
+// POST /api/memory/write
+interface WriteRequest {
+  ia_author: 'claude' | 'gpt4' | 'copilot' | 'gemini' | 'kimi' | 'deepseek';
+  field_key: string;      // Del enum del contrato
+  field_value: string;
+  confidence_score: number; // 0-1
+  schema_hash: string;    // v1.0 actual
+}
