@@ -236,3 +236,73 @@ Las IAs de chat no pueden hacer llamadas HTTP externas directamente. El flujo re
 | 2026-02-14 | Superseded implementado en memory-write. |
 | 2026-02-14 | Script memoria.ps1 operativo. |
 | 2026-02-14 | README y HISTORY publicados en GitHub. |
+🆕 Gestión de nuevos autores IA (Fase 4)
+A partir de Fase 4, el sistema permite añadir nuevas IAs al enum ia_author_enum.
+Sin embargo, para que la aplicación y las Edge Functions funcionen correctamente, es necesario sincronizar tres capas:
+
+El enum en Supabase
+
+La interfaz o scripts locales (MemoriaCoralApp.ps1)
+
+El Prompt de Arranque usado por las IAs
+
+Si cualquiera de estas capas queda desactualizada, la aplicación no podrá registrar nuevas IAs aunque el enum haya sido modificado en la base de datos.
+
+1. Actualización del enum en Supabase
+Para añadir una nueva IA (por ejemplo, mistral), debe ejecutarse:
+
+sql
+ALTER TYPE ia_author_enum ADD VALUE IF NOT EXISTS 'mistral';
+Este comando requiere permisos service_role.
+
+2. Sincronización con la aplicación local
+La aplicación MemoriaCoralApp.ps1 y cualquier interfaz gráfica deben leer dinámicamente los valores del enum desde Supabase.
+
+Consulta recomendada:
+
+sql
+SELECT enumlabel
+FROM pg_enum
+JOIN pg_type ON pg_enum.enumtypid = pg_type.oid
+WHERE pg_type.typname = 'ia_author_enum';
+Si la aplicación usa una lista local hardcodeada, no podrá registrar nuevas IAs.
+
+3. Sincronización con el Prompt de Arranque
+El Prompt de Arranque debe reflejar siempre la lista completa de IAs disponibles.
+
+Tabla actualizada:
+
+IA	ia_author
+Claude	claude
+GPT‑4	gpt4
+Copilot	copilot
+Gemini	gemini
+Kimi	kimi
+Grok	grok
+DeepSeek	deepseek
+Mistral	mistral
+Usuario	user
+4. Flujo recomendado para añadir una nueva IA
+Ejecutar ALTER TYPE en Supabase.
+
+Verificar que la app lee el enum dinámicamente.
+
+Actualizar el Prompt de Arranque.
+
+Registrar la primera escritura de la nueva IA mediante memory-write.
+
+Confirmar que aparece en memory-read.
+
+5. Problemas comunes
+Problema	Causa	Solución
+La app no muestra la nueva IA	Lista local hardcodeada	Cambiar a lectura dinámica del enum
+La IA no puede escribir	Prompt desactualizado	Actualizar tabla de ia_author
+Error en memory-write	Enum no actualizado	Ejecutar ALTER TYPE
+6. Estado actual (Fase 4)
+mistral ha sido añadido al enum en Supabase.
+
+La aplicación aún no refleja el cambio.
+
+El botón Gestionar IAs requiere verificación.
+
+Se recomienda migrar la app a lectura dinámica del enum.
