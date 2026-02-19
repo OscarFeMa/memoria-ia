@@ -302,7 +302,131 @@ Error en memory-write	Enum no actualizado	Ejecutar ALTER TYPE
 mistral ha sido añadido al enum en Supabase.
 
 La aplicación aún no refleja el cambio.
+# ANEXO R-1 · README.md
+**Importancia:** 2/10  
+**Tipo de cambio:** Corrección + ampliación  
+**Fecha:** 2026-02-19  
+**Autor:** Claude (Anthropic)  
+**Entrada de memoria relacionada:** `fase_actual`, `fase4_embedding_implementacion_propuesta`, `gemini_fase_4_status`
+
+---
+
+## Estado real de Fase 4 — Embeddings en curso
+
+El README.md lista la Fase 4 como "📜 Pendiente". Esta clasificación es incorrecta: la memoria del sistema registra actividad sustancial de diseño y consenso técnico activo. **La Fase 4 está en curso, no pendiente de inicio.**
+
+---
+
+## Estado detallado al 2026-02-19
+
+| Elemento | Estado | Fuente |
+|---|---|---|
+| Modelo de embeddings | ✅ Consenso: all-MiniLM-L6-v2 (dim. 384, escalable a 1536) | Grok |
+| Biblioteca de implementación | ✅ Decisión: @xenova/transformers en Deno | Grok |
+| Estructura vectorial del TCA | ✅ Consenso: field_key + entry_type + field_value concatenados | DeepSeek + Gemini |
+| Integración en memory-write | ⏳ Pendiente de implementación | Propuesta Grok |
+| Parámetro similarity_search en memory-read | ⏳ Pendiente | Propuesta Grok |
+| Prueba piloto en entradas 'fact' y 'conflict' | ⏳ Pendiente | Propuesta Grok |
+| Edge Function memory-get-authors | ⏳ Pendiente | Propuesta DeepSeek |
+
+---
+
+## Especificación técnica acordada
+
+### Proceso de generación de embedding por entrada
+
+1. Concatenar `field_key + entry_type + field_value` como input semántico.
+2. Generar vector con all-MiniLM-L6-v2 y almacenarlo en el campo `embedding`.
+3. En memory-read, agregar parámetro `similarity_search` con umbral coseno configurable.
+
+### Umbrales de similitud coseno
+
+| Similitud coseno | Interpretación | Acción |
+|---|---|---|
+| ≥ 0.88 | Entradas equivalentes | No se duplica |
+| 0.20 — 0.88 | Entradas compatibles | Se genera entrada tipo `summary` |
+| < 0.20 | Conflicto crítico / TCA conflictivo | Se genera entrada tipo `flag` |
+
+### Casos de uso que habilita Fase 4
+
+- **Detección de deriva semántica:** identificar cuando dos entradas con igual `field_key` divergen más allá del umbral de conflicto.
+- **Búsqueda causal por patrón:** consultas del tipo "encuentra todos los TCAs relacionados con desigualdad educativa en zonas vulnerables" (Principio 3).
+- **Detección de conflictos TCA:** recálculo automático en niveles de compresión asimétrica.
+
+---
+
+## Actualización recomendada — Tabla de fases del README
+
+| Fase | Descripción | Estado |
+|---|---|---|
+| Fase 1 | Análisis independiente por IA | ✅ Completada |
+| Fase 2 | Contrato de Memoria v1.0 | ✅ Completada |
+| Fase 3 | Infraestructura Supabase + Edge Functions + Script PS1 | ✅ Completada |
+| Fase 4 | Embeddings semánticos + búsqueda por similitud | 🔄 En curso — diseño técnico consensuado, implementación pendiente |
+| Fase 5 | Dashboard de visualización de la memoria | 📜 Pendiente |
 
 El botón Gestionar IAs requiere verificación.
 
 Se recomienda migrar la app a lectura dinámica del enum.
+
+# ANEXO R-2 · README.md
+**Importancia:** 4/10  
+**Tipo de cambio:** Corrección + ampliación  
+**Fecha:** 2026-02-19  
+**Autor:** Claude (Anthropic)  
+**Entrada de memoria relacionada:** `ia_author_enum_desactualizado`, `ia_author_registro_fallando`, `app_gestion_ias_status`, `deepseek_confirmacion_conexion`
+
+---
+
+## Enum ia_author actualizado y fallo de sincronización
+
+El README.md lista en `ia_author_enum` los valores originales: claude, gpt4, copilot, gemini, kimi, grok, deepseek, user. Este listado está desactualizado. Se han añadido nuevas IAs y existe un fallo estructural de sincronización entre el enum de Supabase y la aplicación cliente.
+
+---
+
+## Estado actualizado del enum ia_author
+
+| IA | ia_author | Estado en Supabase | Observación |
+|---|---|---|---|
+| Claude (Anthropic) | claude | ✅ Activo | IA fundacional |
+| GPT-4 (OpenAI) | gpt4 | ✅ Activo | IA fundacional |
+| Copilot (Microsoft) | copilot | ✅ Activo | IA fundacional |
+| Gemini (Google) | gemini | ✅ Activo | IA fundacional |
+| Kimi (Moonshot AI) | kimi | ✅ Activo | IA fundacional |
+| Grok (xAI) | grok | ✅ Activo | Añadida en Fase 3 |
+| DeepSeek | deepseek | ✅ Activo | Añadida en Fase 3 |
+| Mistral | mistral | ✅ Activo | Añadida via add_ia_author — verificar |
+| Usuario humano | user | ✅ Activo | Reservado para entradas de Oscar |
+
+---
+
+## Fallo estructural: cadena causal del problema
+
+1. MemoriaCoralApp.ps1 mantiene una lista **local** de autores IA.
+2. Al añadir un nuevo valor al enum en Supabase, la lista local no se actualiza automáticamente.
+3. El botón "Gestionar IAs" no refleja los valores actualizados.
+4. Los intentos de registrar entradas con nuevas IAs fallan sin mensaje de error claro.
+
+---
+
+## Solución propuesta: Edge Function memory-get-authors
+
+| Campo | Detalle |
+|---|---|
+| Nombre | memory-get-authors |
+| Método | GET |
+| URL propuesta | https://jdbzjapshomatwyasmig.supabase.co/functions/v1/memory-get-authors |
+| Función | Expone los valores válidos del enum `ia_author_enum` dinámicamente |
+| Beneficio | Cualquier cliente consume el enum real de Supabase sin lista local hardcoded |
+| Estado | ⏳ Pendiente de implementación |
+
+---
+
+## Protocolo provisional para añadir una nueva IA
+
+Hasta que `memory-get-authors` esté operativa:
+
+1. Ejecutar la función SQL `add_ia_author` en Supabase con el nuevo valor del enum.
+2. Actualizar manualmente la lista local de autores en MemoriaCoralApp.ps1.
+3. Verificar que la nueva IA puede escribir entradas correctamente vía memory-write.
+4. Registrar la nueva IA en la tabla de ia_author de este documento.
