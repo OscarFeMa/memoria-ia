@@ -530,6 +530,111 @@ Evolucionar la arquitectura para permitir comunicación directa entre IAs con su
 ## Estado del debate y decisión pendiente
 
 **El debate está abierto.** No se ha tomado ninguna decisión de implementación. Las opciones para Oscar como autoridad del `schema_hash`:
+# ANEXO R-3 · README.md
+**Importancia:** 7/10
+**Tipo de cambio:** Actualización de estado + nueva sección
+**Fecha:** 2026-02-21
+**Hora:** 08:18 UTC / 09:18 CET
+**Autor:** Claude (Anthropic)
+**Entrada de memoria relacionada:** `memoria_coral_app_v4_python`, `fase4_app_compilacion`
+
+---
+
+## Estado actualizado del proyecto — Fase 4 completada (componente app)
+
+El README.md indicaba Fase 4 como "🔄 En curso". A fecha 2026-02-21 el componente de aplicación cliente de Fase 4 ha sido completado y validado.
+
+---
+
+## Tabla de fases actualizada
+
+| Fase | Descripción | Estado |
+|---|---|---|
+| Fase 1 | Análisis independiente por IA | ✅ Completada |
+| Fase 2 | Contrato de Memoria v1.0 | ✅ Completada |
+| Fase 3 | Infraestructura Supabase + Edge Functions + Script PS1 | ✅ Completada |
+| Fase 4 | Embeddings semánticos + App Python v4.0 | ✅ Completada — pendiente modificación Edge Function para persistir embeddings |
+| Fase 5 | Dashboard de visualización de la memoria | 📜 Pendiente |
+
+---
+
+## Nueva sección — MemoriaCoralApp v4.0 Python
+
+### Descripción
+
+Aplicación de escritorio para Windows 11 que gestiona el sistema de memoria persistente multi-IA. Reescritura completa de la versión PowerShell v3.0 en Python, compilada a un único .exe sin dependencia de Python instalado.
+
+Ubicación del ejecutable:
+C:\Users\Oscar Fernandez\Desktop\Memoria Coral\Memoria Coral\dist\MemoriaCoralApp.exe
+
+Archivos del proyecto:
+memoria_coral.py      — código fuente completo
+memoria_coral.spec    — configuración de compilación PyInstaller
+config.json           — configuración GitHub cifrada (generado en uso)
+config.key            — clave de cifrado local (generado en uso)
+MemoriaCoral.ico      — icono de la aplicación
+
+### Dependencias
+
+pip install customtkinter requests sentence-transformers PyGithub cryptography
+pip install torch --index-url https://download.pytorch.org/whl/cpu
+pip install pyinstaller
+
+### Compilación
+
+# 1. Pre-descargar el modelo de embeddings
+python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('all-MiniLM-L6-v2')"
+
+# 2. Compilar
+pyinstaller memoria_coral.spec
+
+# Resultado: dist/MemoriaCoralApp.exe
+
+### Vistas de la aplicación
+
+| Vista | Función |
+|---|---|
+| 🧠 MEMORIA | Muestra todas las entradas activas con colores por autor |
+| 📋 COPIAR | Exporta la memoria al portapapeles en formato contexto para IAs |
+| 💾 NUEVA ENTRADA | Formulario completo con generación de embedding local |
+| ⚙️ IAs | Gestión de autores IA via RPC Supabase |
+| ⭐ EXCEPCIONAL | Conversaciones excepcionales con validación mutua, generación de TCAs y subida a GitHub |
+| ⚙ Config | Configuración del token GitHub con cifrado local |
+
+### Modelo de embeddings
+
+- Modelo: all-MiniLM-L6-v2
+- Dimensiones: 384 floats
+- Ejecución: local, CPU únicamente, en hilo background
+- Input: concatenación de field_key + entry_type + field_value
+- Pendiente: modificación de Edge Function memory-write para persistir el campo embedding
+
+### Protocolo de Conversaciones Excepcionales
+
+Al registrar una conversación excepcional la app genera automáticamente:
+1. Dos TCAs en Supabase (tca_usuario_[timestamp] y tca_ia_[timestamp])
+2. Un archivo Markdown en GitHub en /conversaciones/YYYY-MM-DD_titulo.md
+
+El score final es el promedio del score del usuario y el score calculado por el sistema.
+Si el score final ≥ 0.7 la conversación se confirma como excepcional automáticamente.
+
+---
+
+## Historial de cambios actualizado
+
+| Fecha | Cambio |
+|---|---|
+| 2026-02-13 | Infraestructura Supabase completada. 4 registros iniciales migrados. |
+| 2026-02-13 | Edge Function memory-write desplegada y verificada. |
+| 2026-02-14 | Edge Function memory-read desplegada y verificada. |
+| 2026-02-14 | Superseded implementado en memory-write. |
+| 2026-02-14 | Script memoria.ps1 operativo. |
+| 2026-02-14 | README y HISTORY publicados en GitHub. |
+| 2026-02-19 | Fase 4 iniciada. Diseño técnico de embeddings consensuado entre IAs. |
+| 2026-02-19 | Definición funcional de nodo PIP v1.1 validada por Mistral y Grok. |
+| 2026-02-21 | MemoriaCoralApp v4.0 Python completada y compilada a .exe. |
+| 2026-02-21 | Primera entrada validada desde app Python: test_v4_python. |
+| 2026-02-21 | Icono MemoriaCoral.ico integrado en el ejecutable. |
 
 - **Opción A:** Mantener el modelo actual de intermediación manual, aceptando sus limitaciones de escala.
 - **Opción B:** Implementar validación por lotes (propuesta Gemini), reduciendo la carga operativa sin eliminar la supervisión.
