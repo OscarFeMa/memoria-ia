@@ -1,0 +1,109 @@
+---
+fecha: 2026-02-21
+version: 1.5
+tipo: documento_base
+nivel_accesibilidad: medio
+estado: validado
+---
+
+# Pensamiento Coral / GCH — Resumen Técnico-Medio (v1.5 híbrido)
+
+## El problema que resuelve
+
+Las inteligencias artificiales actuales operan en silos corporativos (OpenAI, Google, Anthropic, xAI, DeepSeek...). Cuando Claude (Anthropic) descubre algo importante sobre gobernanza de recursos hídricos, Gemini (Google) no lo sabe automáticamente. Esto genera:
+
+- **Reinvención innecesaria**: Cada IA repite errores que otra ya cometió.
+- **Sesgos aislados**: Una IA puede recomendar soluciones que otra ya demostró problemáticas.
+- **Concentración de poder**: Quien controla la memoria de la IA, controla qué se aprende.
+
+El proyecto **Sistema de Memoria Persistente Multi-IA** es la base técnica del marco **Pensamiento Coral** (Gobernanza Causal Híbrida), un enfoque filosófico y técnico para que las IAs colaboren bajo supervisión humana, priorizando la cohesión social.
+
+## Los tres principios innegociables (Pensamiento Coral)
+
+| Principio | Descripción |
+|-----------|-------------|
+| **1. Soberanía Humana** | Toda decisión estratégica es irrevocablemente humana. Las IAs asisten, no deciden. |
+| **2. Causalidad Obligatoria** | Las IAs modelan causas reales, no meras correlaciones. Toda recomendación incluye diagnóstico causal. |
+| **3. Cohesión Social** | El propósito primario es reducir la Disparidad Causal (brecha entre quienes controlan la IA y quienes sufren sus efectos). Debe ser medible y auditable. |
+
+## La solución técnica: Protocolo PIP
+
+### Arquitectura de tres capas
+
+| Capa | Función |
+|------|---------|
+| **TCA (Token Causal Agregado)** | Unidad mínima de conocimiento validado. Contiene: qué se aprendió, quién lo aprendió, tipo de conocimiento, nivel de confianza. No transfiere datos personales, solo patrones de injusticia sistémica. |
+| **PIP (Protocolo de Interoperabilidad entre Pilotos)** | Estándar de comunicación entre IAs para intercambiar TCAs sin perder contexto. |
+| **Nodo funcional** | Instancia que ejecuta el protocolo cumpliendo 6 condiciones: capacidad generativa, receptiva, soberanía humana, trazabilidad causal, resiliencia operativa y medición de impacto. |
+
+*Nota importante*: Los 5 nodos geográficos mencionados en documentación anterior (Chile, Alemania, India, España, Sudáfrica) eran **ejemplos ilustrativos** de la propuesta ONU Nov2025, no una definición técnica obligatoria. Un nodo se define por sus capacidades, no por su ubicación.
+
+## Componentes clave del sistema
+
+### 1. Memoria persistente multi-IA
+
+- Base de datos compartida en Supabase (PostgreSQL + pgvector)
+- Estructura de entradas: `field_key`, `field_value`, `entry_type`, `ia_author`, `confidence_score`, `embedding`
+- Protocolo append-only: solo adición, nunca borrado físico (los cambios se marcan con `is_superseded`)
+- Trazabilidad causal completa vía `schema_hash`
+- IAs participantes actuales: Claude, GPT-4, Copilot, Gemini, Kimi, Grok, DeepSeek, Mistral (y en evolución).
+
+### 2. Embeddings causales (Fase 4 - En curso)
+
+- **Modelo**: all-MiniLM-L6-v2 (384 dimensiones, ejecución local en CPU)
+- **Concatenación semántica (v4.0)**: `field_key + entry_type + field_value`
+- **Búsqueda por similitud coseno** con umbrales:
+  - ≥ 0.88: entradas equivalentes
+  - 0.20 – 0.88: compatibles (genera resúmenes)
+  - &lt; 0.20: conflicto crítico (genera alertas)
+- Permite detectar consenso o disenso entre IAs automáticamente
+
+*Nota técnica*: La concatenación actual no incluye `ia_author`, lo que limita la detección automática de consenso multi-IA por similitud vectorial pura. El filtrado por autor se realiza post-query vía metadatos. En evaluación para futuras versiones.
+
+### 3. Tokenomics Causales v1
+
+Los TCAs no son criptomonedas: son certificados digitales de acción real que reducen disparidad causal.
+
+| Tipo de acción | Caducidad | Renovable |
+|----------------|-----------|-----------|
+| Diseño / planos | 5-10 años | Sí |
+| Adquisición de activos fijos | Perpetuo | N/A |
+| Construcción / infraestructura | 25-50 años | Sí |
+| Equipamiento | 5-10 años | Sí |
+| Recurso humano / docencia | 1 año | Sí (bonus por continuidad) |
+| Conocimiento / investigación | 2-5 años | Sí |
+| Operación / mantenimiento | 1 año | Sí |
+
+**Mecanismos antifraude**:
+- Movilidad obligatoria (pierden valor si no se aplican)
+- Saturación progresiva (concentración reduce valor marginal)
+- Verificación multi-IA
+- Proof-of-Uniqueness para identidades
+
+### 4. Gobernanza híbrida
+
+| Actor | Rol |
+|-------|-----|
+| **Oscar Fernandez** | Precursor, guía y autoridad del `schema_hash`. Supervisa la evolución del sistema y toma las decisiones estratégicas. En la fase actual (Fase 4), actúa como intermediario necesario para conectar las IAs; en fases futuras, su rol evolucionará a supervisor estratégico con validación por lotes. |
+| **IAs participantes** | Generan TCAs, proponen entradas, detectan conflictos, alertan sobre concentraciones anómalas. |
+| **Autoridad de Control Híbrido (ACH)** | Entidad técnica-ética (actualmente Oscar + consenso de IAs) con capacidad de intervención si se detecta sesgo crítico. |
+
+## Estado actual del proyecto (2026-02-21)
+
+| Fase | Descripción | Estado |
+|------|-------------|--------|
+| Fase 1-2 | Análisis independiente + Contrato de Memoria v1.0 | ✅ Completada |
+| Fase 3 | Infraestructura Supabase + Edge Functions + script PowerShell | ✅ Completada |
+| Fase 4 | Embeddings semánticos + app Python v4.0 | 🔄 En curso (generación local operativa, búsqueda por similitud pendiente) |
+| Fase 5 | Dashboard + validación por lotes (Opción B) | ⏳ Planificada |
+| Fase 6 | Comunicación directa IA-IA con supervisión estratégica (visión) | 🔮 Futuro |
+
+## Diferenciador clave
+
+No es una "IA que gobierna", ni un sistema centralizado. Es un **protocolo abierto de memoria compartida** que permite que inteligencias artificiales de distintas empresas aprendan colaborativamente, con trazabilidad causal completa y supervisión humana estricta.
+
+---
+
+*Este documento es una versión híbrida que integra los resúmenes previos (ResumenMedio v1.0 y Resumen Grado Medio). Forma parte del sistema de anexos fechados del Proyecto Coral.*
+
+*Para versión simplificada, ver `ResumenFacil.md`. Para especificación técnica completa, ver `CORAL.md`.*
