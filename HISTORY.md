@@ -341,6 +341,109 @@ Propuesta de estructura vectorial a partir de la concatenación semántica de fi
 ### GPT-4 (OpenAI) — Arquitectura Fase 4
 Propuso arquitectura de embeddings causales reforzando el enfoque de embeddings centralizados generados por backend, coherente con el Contrato de Memoria v1.0.
 
+# ANEXO H-5 · HISTORY.md
+**Importancia:** 8/10
+**Tipo de cambio:** Registro de fase completada
+**Fecha:** 2026-02-21
+**Hora:** 08:18 UTC / 09:18 CET
+**Autor:** Claude (Anthropic)
+**Entrada de memoria relacionada:** `memoria_coral_app_v4_python`, `fase4_app_compilacion`, `test_v4_python`
+
+---
+
+## Fase 4 — MemoriaCoralApp v4.0 Python: implementación y compilación exitosa
+
+La Fase 4 queda registrada como completada en su componente de aplicación cliente. Esta sesión (2026-02-21) culminó el proceso iniciado en Fases 3 y 4 con la reescritura completa de la aplicación de escritorio de PowerShell a Python, su compilación a ejecutable Windows y la validación funcional mediante primera entrada real en Supabase.
+
+---
+
+## Decisión principal
+
+Reescritura completa de MemoriaCoralApp de PowerShell v3.0 a Python v4.0, compilable a un único .exe para Windows 11 sin dependencia de Python instalado.
+
+Motivo: la versión PowerShell (v3.0) no soportaba generación local de embeddings ni el módulo de Conversaciones Excepcionales con generación de TCAs. La reescritura en Python habilita estas capacidades mediante sentence-transformers, customtkinter, PyGithub y cryptography.
+
+---
+
+## Arquitectura implementada
+
+Todo el sistema queda en un único archivo memoria_coral.py, compilado a MemoriaCoralApp.exe mediante PyInstaller 6.19.0.
+
+| Módulo | Descripción |
+|---|---|
+| Vista 1 — MEMORIA | Lectura de Supabase con colores por autor, refresco manual |
+| Vista 2 — COPIAR | Exporta memoria al portapapeles en formato contexto para IAs |
+| Vista 3 — NUEVA ENTRADA | Formulario completo con generación de embedding local |
+| Vista 4 — IAs | Gestión dinámica de autores vía RPC Supabase |
+| Vista 5 — EXCEPCIONAL | Conversaciones excepcionales con validación mutua y generación de TCAs |
+| Config GitHub | Panel de configuración con token cifrado y subida automática de TCAs en Markdown |
+
+---
+
+## Stack técnico de la aplicación
+
+| Componente | Versión | Función |
+|---|---|---|
+| Python | 3.11.9 | Lenguaje base |
+| customtkinter | 5.2.2 | Interfaz gráfica dark mode |
+| sentence-transformers | 5.2.3 | Embeddings locales |
+| Modelo | all-MiniLM-L6-v2 | 384 dimensiones, CPU únicamente |
+| PyGithub | 2.8.1 | Subida de TCAs a repositorio |
+| cryptography | 46.0.5 | Cifrado del token GitHub en config.json |
+| requests | 2.32.5 | Comunicación con Edge Functions |
+| torch | 2.10.0 | Backend del modelo de embeddings (CPU) |
+| PyInstaller | 6.19.0 | Compilación a .exe único |
+
+---
+
+## Aportación de Claude (Anthropic) en esta sesión
+
+- Diseño completo de la arquitectura Python en un único archivo (~550 líneas)
+- Implementación del flujo de generación de embeddings en hilo background (no bloquea UI)
+- Implementación del módulo de Conversaciones Excepcionales en 4 pasos secuenciales
+- Implementación del cifrado de config.json con cryptography.fernet
+- Generación del archivo memoria_coral.spec para PyInstaller
+- Acompañamiento completo del proceso de instalación, compilación y depuración
+- Integración del icono MemoriaCoral.ico en el ejecutable
+
+---
+
+## Validación funcional
+
+| Prueba | Resultado |
+|---|---|
+| Arranque de la app desde Python | ✅ Correcto |
+| Compilación a .exe con PyInstaller 6.19.0 | ✅ Correcto |
+| Icono integrado en el .exe | ✅ Correcto |
+| Primera entrada real en Supabase | ✅ Correcto — test_v4_python visible en Vista 1 |
+
+Primera entrada de validación registrada:
+- ia_author: claude
+- entry_type: fact
+- field_key: test_v4_python
+- field_value: Primera entrada desde MemoriaCoralApp v4.0 Python. Compilación exitosa.
+- confidence_score: 0.9
+
+---
+
+## Pendiente de Fase 4 (no bloqueante)
+
+La Edge Function memory-write necesita una modificación menor para persistir los embeddings generados localmente. Sin este cambio los embeddings se generan correctamente en la app pero se guardan como null en la base de datos.
+
+// Modificación necesaria en index.ts de memory-write:
+const { ia_author, entry_type, field_key, field_value, confidence_score, embedding } = body;
+embedding: embedding ?? null,
+
+---
+
+## Implicación para las fases futuras
+
+| Fase | Impacto |
+|---|---|
+| Fase 4 — Búsqueda por similitud | Requiere la modificación de la Edge Function para persistir embeddings |
+| Fase 5 — Dashboard | La app Python es la base sobre la que construir el dashboard |
+| Comunicación IA-IA | La Vista 5 es la primera implementación operativa del debate registrado en H-4 |
+
 ---
 
 ## Debate activo: tokenomics causales
