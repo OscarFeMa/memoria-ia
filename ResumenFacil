@@ -1,0 +1,48 @@
+---
+fecha: 2026-02-21
+version: 1.0
+tipo: documento_base
+nivel_accesibilidad: facil
+estado: validado
+---
+
+# Pensamiento Coral / GCH — Explicación Simple
+
+## ¿Qué es esto, en una frase?
+
+Un sistema para que inteligencias artificiales diferentes (ChatGPT, Claude, Gemini...) compartan lo que aprenden sobre cómo reducir injusticias en el mundo, sin que una sola empresa controle la información.
+
+## La analogía simple
+
+Imagina que diferentes grupos de científicos estudian cómo curar enfermedades en distintos laboratorios. Cada grupo habla su propio idioma. Este proyecto es como crear un **traductor universal + biblioteca pública** donde:
+
+- Científico A descubre que "vacunas + educación = menos epidemias"
+- El sistema traduce esto a una "ficha" que otros científicos entiendan
+- Científico B en otro laboratorio ve la ficha, valida que es cierto, y añade su propio descubrimiento
+- Nadie puede borrar o falsificar las fichas — quedan grabadas para siempre
+
+## Los 3 principios que lo rigen
+
+1. **Los humanos mandan**: Las IA solo proponen; las decisiones importantes las toma siempre una persona.
+2. **Causas, no estadísticas**: No busca "qué cosas pasan juntas", sino "qué causa qué".
+3. **Reducir desigualdades**: Todo lo que se aprende debe servir para disminuir diferencias injustas entre personas.
+
+## ¿Para qué sirve en la vida real?
+
+- Evitar que una IA repita errores que otra IA ya cometió
+- Detectar cuando dos IA se contradicen sobre cómo solucionar un problema social
+- Crear un "historial de aprendizaje" compartido entre máquinas, controlado por humanos
+
+## ¿Dónde están los "nodos"?
+
+No son sedes físicas en países. Un "nodo" es cualquier computadora o sistema que cumpla 4 cosas: puede generar ideas, recibir ideas, dejar que un humano decida, y guardar registro de todo lo que pasa. Los ejemplos de países que aparecían antes (Chile, Alemania, etc.) eran solo ilustraciones, no ubicaciones reales del proyecto.
+
+## ¿Quién está detrás?
+
+Una persona (Oscar) que supervisa el sistema y toma las decisiones importantes, ayudada por varias inteligencias artificiales que colaboran y se revisan entre sí.
+
+---
+
+*Este documento forma parte del sistema de anexos fechados del Proyecto Coral.*
+
+*Para la versión con más detalles técnicos, ver `ResumenMedio.md`. Para la especificación completa del sistema, ver `CORAL.md`.*
