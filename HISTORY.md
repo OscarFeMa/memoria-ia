@@ -634,7 +634,93 @@ Si el score final ≥ 0.7 la conversación se confirma como excepcional automát
 | 2026-02-19 | Definición funcional de nodo PIP v1.1 validada por Mistral y Grok. |
 | 2026-02-21 | MemoriaCoralApp v4.0 Python completada y compilada a .exe. |
 | 2026-02-21 | Primera entrada validada desde app Python: test_v4_python. |
-| 2026-02-21 | Icono MemoriaCoral.ico integrado en el ejecutable. |
+| 2026-02-21 | Icono MemoriaCoral.ico integrado en el ejecutable. 
+# ANEXO H-7 · HISTORY.md
+**Importancia:** 9/10
+**Tipo de cambio:** Cierre definitivo de Fase 4
+**Fecha:** 2026-02-21
+**Hora:** 11:30 UTC / 12:30 CET
+**Autores:** Claude (Anthropic), DeepSeek, Gemini (Google)
+**Nota autoría:** Diagnóstico técnico y fix aplicado por Claude.
+Validación cruzada y detección de inconsistencia dimensional
+por DeepSeek. Confirmación arquitectónica y alineación
+estratégica por Gemini.
+**Entrada de memoria relacionada:** `test_debug_embedding`,
+`fase4_embedding_dimension_resuelta`, `fase4_estado_real_20260221`,
+`gemini_asimilacion_v4_python_y_tokenomics`
+
+---
+
+## Fase 4 — Cierre definitivo: embeddings persistiendo correctamente en Supabase
+
+Todos los componentes de Fase 4 están operativos. Esta sesión (2026-02-21)
+completa el ciclo iniciado en Fase 3 con la activación completa del sistema
+de embeddings semánticos end-to-end.
+
+---
+
+## Hitos completados en esta sesión
+
+| Hito | Detalle | Resultado |
+|---|---|---|
+| Fix formato vector | Conversión de lista Python a string `[x,y,z,...]` para pgvector | ✅ |
+| Modificación memory-write | Campo `embedding` añadido al insert via dashboard Supabase | ✅ |
+| Verificación desde Python | Test directo confirmó embedding de 384 dims guardado correctamente | ✅ |
+| Verificación desde app | Entrada `test_debug_embedding` con embedding persistido en Supabase | ✅ |
+| Recompilación .exe | PyInstaller 6.19.0 con fix incluido | ✅ |
+| Límite memory-read | Subido de 50 a 1000 entradas | ✅ |
+| mistral añadido a validAuthors | memory-write actualizado con nuevo autor | ✅ |
+
+---
+
+## Fix técnico aplicado
+
+El problema era que pgvector no acepta arrays JSON nativos de Python.
+La solución fue convertir la lista de floats a string antes del POST:
+
+def api_escribir_entrada(payload):
+    try:
+        if payload.get("embedding") is not None:
+            emb = payload["embedding"]
+            payload["embedding"] = "[" + ",".join(str(x) for x in emb) + "]"
+        r = requests.post(URL_WRITE, headers=HEADERS, json=payload, timeout=30)
+        r.raise_for_status()
+        return True, None
+    except Exception as e:
+        return False, str(e)
+
+---
+
+## Estado final de Fase 4
+
+| Componente | Estado |
+|---|---|
+| App Python v4.0 compilada a .exe | ✅ Operativo |
+| Generación local de embeddings (all-MiniLM-L6-v2, 384 dims) | ✅ Operativo |
+| Persistencia de embeddings en Supabase vector(384) | ✅ Operativo |
+| Conversaciones Excepcionales + TCAs | ✅ Operativo |
+| Límite memory-read: 1000 entradas | ✅ Operativo |
+| Búsqueda por similitud coseno (similarity_search) | 📜 Fase 5 |
+
+---
+
+## Pendiente para Fase 5
+
+- Implementar parámetro `similarity_search` en memory-read
+- Edge Function `memory-get-authors` para eliminar lista hardcodeada
+- Dashboard de visualización de la memoria como red de TCAs
+- Decisión sobre Opción C (supervisión humana estratégica vs operativa)
+
+---
+
+## Nota sobre entradas de test
+
+Durante el proceso de diagnóstico y verificación se generaron 6 entradas
+de test en Supabase: test_debug_embedding, test_embedding_app_v4,
+test_embedding_fix, test_embedding_directo, test_embedding_v4, test_v4_python.
+Estas entradas son válidas como registro histórico del proceso de
+depuración pero pueden marcarse como is_superseded = true para
+mantener la memoria activa limpia.
 
 - **Opción A:** Mantener el modelo actual de intermediación manual, aceptando sus limitaciones de escala.
 - **Opción B:** Implementar validación por lotes (propuesta Gemini), reduciendo la carga operativa sin eliminar la supervisión.
