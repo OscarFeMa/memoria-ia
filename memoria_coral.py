@@ -7,7 +7,15 @@ import threading
 import json
 import os
 import time
+import sys
 from datetime import datetime
+
+# Ocultar consola en Windows cuando se ejecuta como .exe compilado
+if sys.platform == "win32" and getattr(sys, 'frozen', False):
+    import ctypes
+    ctypes.windll.user32.ShowWindow(
+        ctypes.windll.kernel32.GetConsoleWindow(), 0
+    )
 
 import requests
 import customtkinter as ctk
@@ -113,7 +121,19 @@ def _cargar_modelo():
     _model_loading = True
     try:
         from sentence_transformers import SentenceTransformer
-        EMBEDDING_MODEL = SentenceTransformer('all-MiniLM-L6-v2')
+        import sys, os
+        if getattr(sys, 'frozen', False):
+            # Dentro del .exe: ruta explícita al snapshot empaquetado
+            _model_path = os.path.join(
+                sys._MEIPASS,
+                "huggingface_cache",
+                "models--sentence-transformers--all-MiniLM-L6-v2",
+                "snapshots",
+                "c9745ed1d9f207416be6d2e6f8de32d1f16199bf"
+            )
+        else:
+            _model_path = 'all-MiniLM-L6-v2'
+        EMBEDDING_MODEL = SentenceTransformer(_model_path)
     except Exception as e:
         print(f"[ERROR modelo] {e}")
     finally:
@@ -124,11 +144,18 @@ def iniciar_carga_modelo():
     t = threading.Thread(target=_cargar_modelo, daemon=True)
     t.start()
 
-def generar_embedding(field_key, entry_type, field_value):
-    _model_ready.wait(timeout=60)
+def generar_embedding(field_key, entry_type, field_value, ia_author=""):
+    """
+    v4.1 — Concatenación semántica incluye ia_author:
+    [{ia_author}] {field_key} | {entry_type} | {field_value}
+    Permite detectar consenso multi-IA (vectores similares, autores distintos)
+    y disenso (mismo field_key, vectores divergentes entre autores).
+    """
+    _model_ready.wait(timeout=300)
     if EMBEDDING_MODEL is None:
         return None
-    texto = f"{field_key} {entry_type} {field_value}"
+    prefix = f"[{ia_author}] " if ia_author else ""
+    texto = f"{prefix}{field_key} | {entry_type} | {field_value}"
     return EMBEDDING_MODEL.encode(texto).tolist()
 
 # ─────────────────────────────────────────────────────────
@@ -169,6 +196,26 @@ def api_add_ia(nombre):
         return False, r.text
     except Exception as e:
         return False, str(e)
+
+# ─────────────────────────────────────────────────────────
+# RECÁLCULO MASIVO DE EMBEDDINGS (v4.1)
+# ─────────────────────────────────────────────────────────
+def api_supersede_y_reescribir(entrada_original, nuevo_embedding):
+    """
+    Protocolo append-only: crea nueva entrada con embedding v4.1.
+    Incluye supersedes_id para que la Edge Function marque la anterior
+    como is_superseded=true si lo soporta, o simplemente añade la nueva.
+    """
+    payload = {
+        "ia_author":        entrada_original.get("ia_author"),
+        "entry_type":       entrada_original.get("entry_type"),
+        "field_key":        entrada_original.get("field_key"),
+        "field_value":      entrada_original.get("field_value"),
+        "confidence_score": entrada_original.get("confidence_score", 0.8),
+        "supersedes_id":    entrada_original.get("id"),
+        "embedding":        nuevo_embedding,
+    }
+    return api_escribir_entrada(payload)
 
 # ─────────────────────────────────────────────────────────
 # API GITHUB
@@ -302,7 +349,17 @@ class MemoriaCoralApp(ctk.CTk):
         self.geometry("820x720")
         self.resizable(False, False)
         self.configure(fg_color=COLORS["bg"])
-        self.iconbitmap(r"C:\Users\Oscar Fernandez\Desktop\Memoria Coral\Memoria Coral\MemoriaCoral.ico")
+        # Icono — ruta compatible con .exe y Python directo
+        try:
+            import sys, os
+            if getattr(sys, 'frozen', False):
+                _ico = os.path.join(sys._MEIPASS, "MemoriaCoral.ico")
+            else:
+                _ico = r"C:\Users\Oscar Fernandez\Desktop\Memoria Coral\Memoria Coral\MemoriaCoral.ico"
+            if os.path.exists(_ico):
+                self.iconbitmap(_ico)
+        except Exception:
+            pass
 
         self._centrar()
         self._build_ui()
@@ -311,9 +368,21 @@ class MemoriaCoralApp(ctk.CTk):
 
         # Cargar modelo en background
         iniciar_carga_modelo()
+        self._monitorear_modelo()
 
         # Mostrar vista inicial
         self.mostrar_vista("memoria")
+
+    def _monitorear_modelo(self):
+        """Actualiza la barra de estado mientras el modelo carga en background."""
+        if _model_ready.is_set():
+            if EMBEDDING_MODEL is not None:
+                self.status("Modelo listo.", "ok")
+            else:
+                self.status("Error al cargar modelo de embeddings.", "error")
+        else:
+            self.status("⏳ Cargando modelo de embeddings...", "warning")
+            self.after(2000, self._monitorear_modelo)
 
     def _centrar(self):
         self.update_idletasks()
@@ -356,6 +425,8 @@ class MemoriaCoralApp(ctk.CTk):
             ("nueva",      "💾 NUEVA ENTRADA"),
             ("ias",        "⚙️ IAs"),
             ("excepcional","⭐ EXCEPCIONAL"),
+            ("buscar",     "🔍 BUSCAR"),
+            ("recalcular", "🔁 RECALCULAR"),
         ]
         for vista, label in nav_items:
             btn = ctk.CTkButton(
@@ -413,6 +484,8 @@ class MemoriaCoralApp(ctk.CTk):
             "ias":         self._vista_gestionar_ias,
             "excepcional": self._vista_excepcional_paso1,
             "config":      self._vista_config_github,
+            "recalcular":  self._vista_recalcular_embeddings,
+            "buscar":      self._vista_buscar_similitud,
         }
         fn = vistas.get(nombre)
         if fn:
@@ -630,7 +703,7 @@ class MemoriaCoralApp(ctk.CTk):
                         "field_key": key, "field_value": val, "confidence_score": conf}
 
         def _worker():
-            emb = generar_embedding(key, etype, val)
+            emb = generar_embedding(key, etype, val, ia_author=ia)
             payload = {**payload_base, "embedding": emb}
             ok, err = api_escribir_entrada(payload)
             self.after(0, lambda: self._post_guardar(ok, err))
@@ -916,8 +989,8 @@ class MemoriaCoralApp(ctk.CTk):
                       f"Tipo: conocimiento/investigación. Caducidad: 3 años. "
                       f"Score: {score_f:.2f}. Validado por: user.")
 
-            emb_u  = generar_embedding(f"tca_usuario_{ts}", "fact", val_u)
-            emb_ia = generar_embedding(f"tca_ia_{ts}", "fact", val_ia)
+            emb_u  = generar_embedding(f"tca_usuario_{ts}", "fact", val_u, ia_author="user")
+            emb_ia = generar_embedding(f"tca_ia_{ts}", "fact", val_ia, ia_author=ia)
 
             self.after(0, lambda: log("  ✓ Embeddings generados", COLORS["ok"]))
 
@@ -1054,6 +1127,375 @@ class MemoriaCoralApp(ctk.CTk):
                 "ok" if ok else "error"
             ))
         threading.Thread(target=_test, daemon=True).start()
+
+
+    # ════════════════════════════════════════════════════════
+    # VISTA 6 — RECALCULAR EMBEDDINGS v4.1
+    # ════════════════════════════════════════════════════════
+    def _vista_recalcular_embeddings(self, _=None):
+        frame = ctk.CTkFrame(self._content, fg_color=COLORS["bg"])
+        frame.pack(fill="both", expand=True, padx=16, pady=12)
+
+        ctk.CTkLabel(frame, text="🔁  Recalcular Embeddings — Migración a v4.1",
+            font=("Segoe UI Variable", 12, "bold"),
+            text_color=COLORS["warning"]).pack(anchor="w", pady=(0,6))
+
+        info = ctk.CTkLabel(frame,
+            text=(
+                "Recalcula todos los embeddings existentes usando la nueva concatenación v4.1:\n"
+                "  [{ia_author}] {field_key} | {entry_type} | {field_value}\n\n"
+                "Por cada entrada activa se crea una nueva entrada con el embedding corregido\n"
+                "y la anterior queda marcada como superseded (protocolo append-only).\n"
+                "⚠  Requiere que el modelo esté cargado. Puede tardar varios minutos."
+            ),
+            font=("Segoe UI Variable", 9), text_color=COLORS["muted"],
+            justify="left")
+        info.pack(anchor="w", pady=(0,10))
+
+        # Barra de progreso
+        self._recalc_progress_var = ctk.DoubleVar(value=0)
+        self._recalc_progress_bar = ctk.CTkProgressBar(frame,
+            variable=self._recalc_progress_var,
+            progress_color=COLORS["warning"], fg_color=COLORS["surface"],
+            height=12, corner_radius=6)
+        self._recalc_progress_bar.pack(fill="x", pady=(0,4))
+
+        self._recalc_count_lbl = ctk.CTkLabel(frame, text="",
+            font=("Consolas", 9), text_color=COLORS["muted"])
+        self._recalc_count_lbl.pack(anchor="w", pady=(0,6))
+
+        # Log
+        sf, self._recalc_log = scrollable_text(frame)
+        sf.pack(fill="both", expand=True, pady=(0,8))
+
+        btn_row = ctk.CTkFrame(frame, fg_color=COLORS["bg"])
+        btn_row.pack(fill="x")
+
+        self._recalc_btn = make_btn(btn_row, "🔁 INICIAR RECÁLCULO", self._iniciar_recalculo,
+                 color=COLORS["warning"], text_color=COLORS["bg"], width=200)
+        self._recalc_btn.pack(side="left")
+
+        ctk.CTkLabel(btn_row,
+            text="  Solo entradas activas (is_superseded=false)",
+            font=("Segoe UI Variable", 8), text_color=COLORS["muted"]).pack(side="left", padx=8)
+
+    def _log_recalc(self, msg, color=None):
+        self._recalc_log.configure(state="normal")
+        tag = f"t{id(msg)}"
+        self._recalc_log.tag_config(tag, foreground=color or COLORS["text"])
+        self._recalc_log.insert("end", msg + "\n", tag)
+        self._recalc_log.see("end")
+        self._recalc_log.configure(state="disabled")
+        self._recalc_log.update()
+
+    def _iniciar_recalculo(self):
+        if not _model_ready.is_set() or EMBEDDING_MODEL is None:
+            self.status("Modelo no cargado aún. Espera unos segundos.", "warning")
+            return
+
+        self._recalc_btn.configure(state="disabled", text="⏳ Procesando...")
+        self.status("Recálculo en curso...", "warning")
+
+        def _worker():
+            self.after(0, lambda: self._log_recalc("Cargando entradas activas desde Supabase...", COLORS["accent2"]))
+            data, err = api_leer_memoria()
+            if err:
+                self.after(0, lambda: self._log_recalc(f"✗ Error al leer memoria: {err}", COLORS["error"]))
+                self.after(0, lambda: self._recalc_btn.configure(state="normal", text="🔁 INICIAR RECÁLCULO"))
+                return
+
+            entradas = data if isinstance(data, list) else data.get("entries", [])
+            activas  = [e for e in entradas if not e.get("is_superseded", False)]
+            total    = len(activas)
+
+            self.after(0, lambda: self._log_recalc(
+                f"  {total} entradas activas encontradas. Iniciando recálculo v4.1...\n",
+                COLORS["text"]))
+
+            ok_count  = 0
+            err_count = 0
+
+            for i, entrada in enumerate(activas):
+                ia    = entrada.get("ia_author", "")
+                key   = entrada.get("field_key", "")
+                etype = entrada.get("entry_type", "")
+                val   = entrada.get("field_value", "")
+
+                # Generar nuevo embedding v4.1
+                nuevo_emb = generar_embedding(key, etype, val, ia_author=ia)
+
+                if nuevo_emb is None:
+                    msg = f"  [{i+1}/{total}] ✗ SKIP (modelo no disponible): {key}"
+                    self.after(0, lambda m=msg: self._log_recalc(m, COLORS["error"]))
+                    err_count += 1
+                else:
+                    ok, err_w = api_supersede_y_reescribir(entrada, nuevo_emb)
+                    if ok:
+                        msg = f"  [{i+1}/{total}] ✓ {ia} | {key}"
+                        self.after(0, lambda m=msg: self._log_recalc(m, COLORS["ok"]))
+                        ok_count += 1
+                    else:
+                        msg = f"  [{i+1}/{total}] ✗ ERROR: {key} — {err_w}"
+                        self.after(0, lambda m=msg: self._log_recalc(m, COLORS["error"]))
+                        err_count += 1
+
+                # Actualizar barra de progreso
+                progreso = (i + 1) / total if total > 0 else 1
+                count_txt = f"Procesadas: {i+1}/{total}  ·  ✓ {ok_count}  ·  ✗ {err_count}"
+                self.after(0, lambda p=progreso: self._recalc_progress_var.set(p))
+                self.after(0, lambda t=count_txt: self._recalc_count_lbl.configure(text=t))
+
+                # Pequeña pausa para no saturar la API
+                time.sleep(0.15)
+
+            resumen = (
+                f"\n{'─'*50}\n"
+                f"✅ Recálculo completado.\n"
+                f"   Entradas procesadas: {total}\n"
+                f"   Exitosas: {ok_count}\n"
+                f"   Errores:  {err_count}\n"
+                f"   Concatenación aplicada: [ia_author] field_key | entry_type | field_value\n"
+                f"{'─'*50}"
+            )
+            self.after(0, lambda: self._log_recalc(resumen, COLORS["accent1"]))
+            self.after(0, lambda: self.status(
+                f"Recálculo completado: {ok_count} OK, {err_count} errores.", "ok"))
+            self.after(0, lambda: self._recalc_btn.configure(
+                state="normal", text="🔁 INICIAR RECÁLCULO"))
+
+        threading.Thread(target=_worker, daemon=True).start()
+
+
+    # ════════════════════════════════════════════════════════
+    # VISTA 7 — BÚSQUEDA POR SIMILITUD COSENO (v4.1)
+    # ════════════════════════════════════════════════════════
+    def _vista_buscar_similitud(self, _=None):
+        frame = ctk.CTkFrame(self._content, fg_color=COLORS["bg"])
+        frame.pack(fill="both", expand=True, padx=16, pady=12)
+
+        ctk.CTkLabel(frame, text="🔍  Búsqueda por Similitud Semántica",
+            font=("Segoe UI Variable", 12, "bold"),
+            text_color=COLORS["accent2"]).pack(anchor="w", pady=(0,6))
+
+        # ── Umbrales de referencia ───────────────────────────
+        umb_frame = ctk.CTkFrame(frame, fg_color=COLORS["panel"], corner_radius=8)
+        umb_frame.pack(fill="x", pady=(0,10))
+        umb_inner = ctk.CTkFrame(umb_frame, fg_color=COLORS["panel"])
+        umb_inner.pack(fill="x", padx=14, pady=8)
+        for color, label in [
+            (COLORS["ok"],      "■  ≥ 0.88   Equivalente"),
+            (COLORS["accent2"], "■  0.20–0.87  Compatible"),
+            (COLORS["error"],   "■  < 0.20   Conflicto crítico"),
+        ]:
+            ctk.CTkLabel(umb_inner, text=label,
+                font=("Consolas", 9), text_color=color).pack(side="left", padx=14)
+
+        # ── Formulario de búsqueda ───────────────────────────
+        search_row = ctk.CTkFrame(frame, fg_color=COLORS["bg"])
+        search_row.pack(fill="x", pady=(0,6))
+
+        self._buscar_query = ctk.CTkEntry(
+            search_row,
+            placeholder_text="Escribe tu consulta semántica... (ej: soberanía humana en decisiones estratégicas)",
+            fg_color=COLORS["input"], border_color=COLORS["accent2"],
+            text_color=COLORS["text"], width=560, height=36,
+            font=("Segoe UI Variable", 10)
+        )
+        self._buscar_query.pack(side="left", padx=(0,8))
+        self._buscar_query.bind("<Return>", lambda e: self._ejecutar_busqueda())
+
+        make_btn(search_row, "🔍 BUSCAR", self._ejecutar_busqueda,
+                 color=COLORS["accent2"], text_color="white", width=100).pack(side="left")
+
+        # ── Filtros ──────────────────────────────────────────
+        filtros_row = ctk.CTkFrame(frame, fg_color=COLORS["bg"])
+        filtros_row.pack(fill="x", pady=(0,8))
+
+        ctk.CTkLabel(filtros_row, text="Filtrar por IA:",
+            font=("Segoe UI Variable", 9), text_color=COLORS["muted"]).pack(side="left", padx=(0,6))
+
+        self._buscar_filtro_ia = StringVar(value="todas")
+        ia_opts = ["todas"] + self._ia_list
+        ctk.CTkComboBox(filtros_row, variable=self._buscar_filtro_ia,
+            values=ia_opts, width=140,
+            fg_color=COLORS["input"], border_color=COLORS["surface"],
+            button_color=COLORS["accent2"], dropdown_fg_color=COLORS["panel"],
+            text_color=COLORS["text"]).pack(side="left", padx=(0,16))
+
+        ctk.CTkLabel(filtros_row, text="Tipo:",
+            font=("Segoe UI Variable", 9), text_color=COLORS["muted"]).pack(side="left", padx=(0,6))
+
+        self._buscar_filtro_tipo = StringVar(value="todos")
+        tipo_opts = ["todos"] + ENTRY_TYPES
+        ctk.CTkComboBox(filtros_row, variable=self._buscar_filtro_tipo,
+            values=tipo_opts, width=130,
+            fg_color=COLORS["input"], border_color=COLORS["surface"],
+            button_color=COLORS["accent2"], dropdown_fg_color=COLORS["panel"],
+            text_color=COLORS["text"]).pack(side="left", padx=(0,16))
+
+        ctk.CTkLabel(filtros_row, text="Máx. resultados:",
+            font=("Segoe UI Variable", 9), text_color=COLORS["muted"]).pack(side="left", padx=(0,6))
+
+        self._buscar_top_k = StringVar(value="10")
+        ctk.CTkComboBox(filtros_row, variable=self._buscar_top_k,
+            values=["5","10","20","50","todas"], width=80,
+            fg_color=COLORS["input"], border_color=COLORS["surface"],
+            button_color=COLORS["accent2"], dropdown_fg_color=COLORS["panel"],
+            text_color=COLORS["text"]).pack(side="left")
+
+        # ── Resultados ───────────────────────────────────────
+        self._buscar_header = ctk.CTkLabel(frame, text="",
+            font=("Segoe UI Variable", 9, "bold"), text_color=COLORS["muted"])
+        self._buscar_header.pack(anchor="w", pady=(2,4))
+
+        sf, self._buscar_result_text = scrollable_text(frame)
+        sf.pack(fill="both", expand=True)
+
+    def _ejecutar_busqueda(self):
+        query = self._buscar_query.get().strip()
+        if not query:
+            self.status("Escribe una consulta antes de buscar.", "warning")
+            return
+        if not _model_ready.is_set() or EMBEDDING_MODEL is None:
+            self.status("Modelo no cargado aún. Espera unos segundos.", "warning")
+            return
+
+        self.status("Buscando...", "info")
+        self._buscar_header.configure(text="⏳ Generando embedding de la consulta...")
+
+        filtro_ia   = self._buscar_filtro_ia.get()
+        filtro_tipo = self._buscar_filtro_tipo.get()
+        top_k_str   = self._buscar_top_k.get()
+
+        def _worker():
+            import numpy as np
+
+            # Embedding de la consulta (sin ia_author: consulta neutral)
+            vec_query = EMBEDDING_MODEL.encode(query)
+
+            # Cargar todas las entradas
+            data, err = api_leer_memoria()
+            if err:
+                self.after(0, lambda: self.status(f"Error: {err}", "error"))
+                return
+
+            entradas = data if isinstance(data, list) else data.get("entries", [])
+            activas  = [e for e in entradas if not e.get("is_superseded", False)]
+
+            # Aplicar filtros
+            if filtro_ia != "todas":
+                activas = [e for e in activas if e.get("ia_author") == filtro_ia]
+            if filtro_tipo != "todos":
+                activas = [e for e in activas if e.get("entry_type") == filtro_tipo]
+
+            # Calcular similitud coseno para entradas con embedding
+            resultados = []
+            sin_embedding = 0
+
+            for e in activas:
+                emb_raw = e.get("embedding")
+                if not emb_raw:
+                    sin_embedding += 1
+                    continue
+                try:
+                    # El embedding puede venir como lista o como string "[x,y,z]"
+                    if isinstance(emb_raw, str):
+                        vec = np.array(json.loads(emb_raw), dtype=np.float32)
+                    else:
+                        vec = np.array(emb_raw, dtype=np.float32)
+
+                    # Similitud coseno
+                    norm_q = np.linalg.norm(vec_query)
+                    norm_v = np.linalg.norm(vec)
+                    if norm_q == 0 or norm_v == 0:
+                        continue
+                    score = float(np.dot(vec_query, vec) / (norm_q * norm_v))
+                    resultados.append((score, e))
+                except Exception:
+                    sin_embedding += 1
+                    continue
+
+            # Ordenar por similitud descendente
+            resultados.sort(key=lambda x: x[0], reverse=True)
+
+            # Aplicar top_k
+            if top_k_str != "todas":
+                try:
+                    resultados = resultados[:int(top_k_str)]
+                except ValueError:
+                    pass
+
+            self.after(0, lambda: self._mostrar_resultados_busqueda(
+                resultados, query, sin_embedding, len(activas)))
+
+        threading.Thread(target=_worker, daemon=True).start()
+
+    def _clasificar_similitud(self, score):
+        if score >= 0.88:
+            return "EQUIVALENTE", COLORS["ok"]
+        elif score >= 0.20:
+            return "compatible",  COLORS["accent2"]
+        else:
+            return "conflicto",   COLORS["error"]
+
+    def _mostrar_resultados_busqueda(self, resultados, query, sin_embedding, total_filtrado):
+        txt = self._buscar_result_text
+        txt.configure(state="normal")
+        txt.delete("1.0", "end")
+
+        n = len(resultados)
+        header_txt = (f"Consulta: \"{query}\"  ·  {n} resultados  "
+                      f"·  {sin_embedding} sin embedding  ·  {total_filtrado} entradas analizadas")
+        self._buscar_header.configure(text=header_txt)
+        self.status(f"{n} resultados encontrados.", "ok")
+
+        if not resultados:
+            txt.insert("end", "\nNo se encontraron entradas con embedding para esta consulta.\n",
+                      "muted")
+            txt.tag_config("muted", foreground=COLORS["muted"], font=("Consolas", 9))
+            txt.configure(state="disabled")
+            return
+
+        # Tags fijos
+        txt.tag_config("sep",   foreground=COLORS["surface"],   font=("Consolas", 8))
+        txt.tag_config("score_ok",  foreground=COLORS["ok"],    font=("Consolas", 10, "bold"))
+        txt.tag_config("score_compat", foreground=COLORS["accent2"], font=("Consolas", 10, "bold"))
+        txt.tag_config("score_conflict", foreground=COLORS["error"],  font=("Consolas", 10, "bold"))
+        txt.tag_config("label_ok",     foreground=COLORS["ok"],    font=("Consolas", 8))
+        txt.tag_config("label_compat", foreground=COLORS["accent2"], font=("Consolas", 8))
+        txt.tag_config("label_conflict", foreground=COLORS["error"], font=("Consolas", 8))
+        txt.tag_config("meta",  foreground=COLORS["muted"],     font=("Consolas", 9))
+        txt.tag_config("key",   foreground=COLORS["text"],      font=("Consolas", 9, "bold"))
+        txt.tag_config("val",   foreground=COLORS["muted"],     font=("Consolas", 9))
+
+        for i, (score, e) in enumerate(resultados):
+            etiqueta, color = self._clasificar_similitud(score)
+            autor  = e.get("ia_author", "?")
+            key    = e.get("field_key", "")
+            val    = e.get("field_value", "")
+            etype  = e.get("entry_type", "")
+            conf   = e.get("confidence_score", "?")
+
+            # Color dinámico por autor
+            autor_color = AUTHOR_COLORS.get(autor, COLORS["accent2"])
+            autor_tag   = f"autor_{autor}_{i}"
+            txt.tag_config(autor_tag, foreground=autor_color, font=("Consolas", 9, "bold"))
+
+            score_tag = f"score_{'ok' if score >= 0.88 else 'compat' if score >= 0.20 else 'conflict'}"
+            label_tag = f"label_{'ok' if score >= 0.88 else 'compat' if score >= 0.20 else 'conflict'}"
+
+            # Línea de resultado
+            txt.insert("end", f"  {score:.4f}  ", score_tag)
+            txt.insert("end", f"[{etiqueta}]  ", label_tag)
+            txt.insert("end", f"[{autor.upper()}]  ", autor_tag)
+            txt.insert("end", f"{key}", "key")
+            txt.insert("end", f"  [{etype}]  conf:{conf}\n", "meta")
+            # Fragmento del valor (máx 120 chars)
+            resumen_val = val[:120] + ("..." if len(val) > 120 else "")
+            txt.insert("end", f"     {resumen_val}\n", "val")
+            txt.insert("end", "  " + "─"*90 + "\n", "sep")
+
+        txt.configure(state="disabled")
 
 
 # ─────────────────────────────────────────────────────────
