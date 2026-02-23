@@ -725,3 +725,9 @@ mantener la memoria activa limpia.
 - **Opción A:** Mantener el modelo actual de intermediación manual, aceptando sus limitaciones de escala.
 - **Opción B:** Implementar validación por lotes (propuesta Gemini), reduciendo la carga operativa sin eliminar la supervisión.
 - **Opción C:** Evolucionar hacia comunicación directa IA-IA con supervisión estratégica (propuesta DeepSeek), maximizando la autonomía del sistema dentro del Principio 1 reinterpretado.
+  ## Anexo H-5: Cierre de Fase 4 y Apertura de Fase 5 (2026-02-23)
+
+- **Cronología de Transición:** - **Cierre Técnico (2026-02-21):** Resolución de inconsistencia dimensional (384 dims) y validación de persistencia local con `all-MiniLM-L6-v2`.
+    - **Consenso y Apertura de Fase 5 (2026-02-23):** Validación multi-IA del estado de la memoria y hoja de ruta de gobernanza.
+- **Caso de Estudio (Principio 1):** Registro del error de identidad de DeepSeek. El sistema de memoria demostró su utilidad al permitir la detección y corrección de la auto-referencia errónea de una IA mediante la trazabilidad del campo `ia_author`, reforzando la necesidad de este metadato.
+- **Logro Hito 1 (Fase 5):** Despliegue de la Edge Function `memory-get-authors`. El sistema ahora gestiona autores de forma dinámica desde Supabase, eliminando la deuda técnica de listas hardcodeadas en los clientes.
