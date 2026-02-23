@@ -227,3 +227,8 @@ Al expirar, el valor residual se recicla al ecosistema como incentivo para nueva
 | Principio 2: Causalidad Obligatoria | Cada token está causalmente vinculado a una acción real verificada. No existen tokens abstractos o especulativos. |
 | Principio 3: Cohesión Social | La caducidad dinámica y los mecanismos antifraude garantizan que los tokens circulen hacia donde hay disparidad causal real, no donde hay concentración de poder. |
 *Para la implementacion tecnica ver README.md. Para el historial del proceso ver HISTORY.md.*
+## Anexo C-3: Evolución de la Soberanía Humana (2026-02-23)
+
+- **Refinamiento Operativo del Principio 1:** Ante el crecimiento del sistema, la Soberanía Humana se escala mediante la **Opción B (Validación por Lotes)**. El humano ya no es un "cuello de botella operativo" necesario para cada escritura, sino la autoridad estratégica que valida conjuntos de conocimiento propuestos por las IAs.
+- **Mecanismo de Pesos Vectoriales:** El ACH Dashboard actúa como el filtro de soberanía. La IA propone trayectorias y TCAs, pero solo la aprobación humana otorga el "peso" necesario para la integración definitiva en el espacio de búsqueda semántica.
+- **Resiliencia Causal:** Se formaliza que los errores técnicos y las latencias (como los ~5s de generación local) son "huellas de soberanía" que garantizan una intermediación humana consciente, alineada con el Principio 2 (Causalidad Obligatoria).
