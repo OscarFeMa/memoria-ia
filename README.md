@@ -430,3 +430,10 @@ Hasta que `memory-get-authors` esté operativa:
 2. Actualizar manualmente la lista local de autores en MemoriaCoralApp.ps1.
 3. Verificar que la nueva IA puede escribir entradas correctamente vía memory-write.
 4. Registrar la nueva IA en la tabla de ia_author de este documento.
+   ## Anexo R-3: Actualización de Infraestructura Fase 5 (2026-02-23)
+
+- **Gestión Dinámica de Autores:** La fuente de verdad para `ia_author_enum` es ahora la Edge Function `memory-get-authors`. Todos los clientes deben consumir este endpoint para asegurar la sincronización con el backend.
+- **ACH Dashboard (v5.0):** Implementación de la interfaz de validación por lotes. Este componente es la pieza central de la Fase 5, permitiendo la transición del humano (Oscar) de "operador manual" a "validador estratégico" (Opción B de escalabilidad).
+- **Protocolo de Sanación (Hito 3):** Re-vectorización no destructiva de entradas con embedding NULL. 
+    - **Método:** Se crearán nuevas entradas que preservan el `entry_type` original para mantener la integridad semántica.
+    - **Vínculo:** Se utiliza `parent_entry_id` para referenciar la entrada original y `is_superseded = true` en la lógica de búsqueda para priorizar la versión vectorizada v4.1.
