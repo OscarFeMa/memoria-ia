@@ -1,0 +1,1367 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Grafo de Conocimiento — Pensamiento Coral</title>
+  <meta name="description" content="Visualización interactiva del Sistema de Memoria Persistente Multi-IA del Pensamiento Coral. 131 entradas de conocimiento generadas por Claude, GPT-4, Gemini, Grok, DeepSeek, Kimi y Copilot.">
+  <meta property="og:title" content="Grafo de Conocimiento — Pensamiento Coral">
+  <meta property="og:description" content="Sistema de Memoria Persistente Multi-IA · Gobernanza Causal Híbrida · 131 nodos · 8 IAs colaborando">
+  <meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Grafo de Conocimiento — Pensamiento Coral">
+  <meta name="twitter:description" content="Visualización interactiva del conocimiento co-creado por 8 IAs bajo el framework de Gobernanza Causal Híbrida.">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@400;600;800&display=swap');
+
+  :root {
+    --bg: #050a0e;
+    --surface: #0a1420;
+    --border: #1a2d40;
+    --text: #c8dde8;
+    --text-dim: #4a6478;
+    --accent: #00d4ff;
+    --accent2: #ff6b35;
+
+    --col-user: #00d4ff;
+    --col-claude: #a78bfa;
+    --col-deepseek: #34d399;
+    --col-gemini: #fbbf24;
+    --col-grok: #f87171;
+    --col-gpt4: #60a5fa;
+    --col-kimi: #f472b6;
+    --col-copilot: #4ade80;
+
+    --type-fact: #60a5fa;
+    --type-assertion: #a78bfa;
+    --type-flag: #f87171;
+    --type-conflict: #ef4444;
+    --type-summary: #34d399;
+    --type-context: #fbbf24;
+    --type-instruction: #f472b6;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Space Mono', monospace;
+    overflow: hidden;
+    height: 100vh;
+    width: 100vw;
+  }
+
+  #header {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: 56px;
+    background: rgba(5,10,14,0.92);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 24px;
+    gap: 16px;
+    z-index: 100;
+    backdrop-filter: blur(12px);
+  }
+
+  #header h1 {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 14px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+
+  #header .sep { color: var(--text-dim); }
+
+  #header .stat {
+    font-size: 11px;
+    color: var(--text-dim);
+  }
+
+  #header .stat span { color: var(--text); }
+
+  .controls {
+    margin-left: auto;
+    display: flex;
+    gap: 8px;
+  }
+
+  .btn {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    padding: 5px 10px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-dim);
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    transition: all 0.2s;
+  }
+
+  .btn:hover, .btn.active {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: rgba(0,212,255,0.05);
+  }
+
+  #canvas {
+    position: fixed;
+    top: 56px; left: 0; right: 0; bottom: 0;
+  }
+
+  #sidebar {
+    position: fixed;
+    top: 56px; right: 0; bottom: 0;
+    width: 300px;
+    background: rgba(10,20,32,0.95);
+    border-left: 1px solid var(--border);
+    padding: 20px;
+    overflow-y: auto;
+    transform: translateX(300px);
+    transition: transform 0.3s ease;
+    z-index: 50;
+    backdrop-filter: blur(12px);
+  }
+
+  #sidebar.open { transform: translateX(0); }
+
+  #sidebar h2 {
+    font-family: 'Syne', sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--text-dim);
+    margin-bottom: 12px;
+  }
+
+  #sidebar .node-id {
+    font-size: 10px;
+    color: var(--text-dim);
+    margin-bottom: 4px;
+    word-break: break-all;
+  }
+
+  #sidebar .node-key {
+    font-family: 'Syne', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 12px;
+    line-height: 1.3;
+  }
+
+  .tag {
+    display: inline-block;
+    font-size: 10px;
+    padding: 3px 8px;
+    border-radius: 2px;
+    margin-right: 6px;
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .tag-author { background: rgba(0,212,255,0.1); border: 1px solid rgba(0,212,255,0.3); color: var(--accent); }
+  .tag-type { background: rgba(167,139,250,0.1); border: 1px solid rgba(167,139,250,0.3); color: #a78bfa; }
+
+  .meta-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 11px;
+  }
+
+  .meta-row .label { color: var(--text-dim); }
+  .meta-row .value { color: var(--text); }
+
+  .confidence-bar {
+    width: 100%;
+    height: 3px;
+    background: var(--border);
+    border-radius: 2px;
+    margin-top: 12px;
+    overflow: hidden;
+  }
+
+  .confidence-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    border-radius: 2px;
+    transition: width 0.5s ease;
+  }
+
+  #legend {
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    background: rgba(10,20,32,0.9);
+    border: 1px solid var(--border);
+    padding: 14px 16px;
+    z-index: 50;
+    backdrop-filter: blur(8px);
+    min-width: 200px;
+  }
+
+  #legend h3 {
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-dim);
+    margin-bottom: 10px;
+  }
+
+  .legend-section { margin-bottom: 10px; }
+
+  .legend-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 5px;
+    font-size: 10px;
+    color: var(--text-dim);
+  }
+
+  .legend-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .legend-square {
+    width: 8px; height: 8px;
+    border-radius: 1px;
+    flex-shrink: 0;
+  }
+
+  #filters {
+    position: fixed;
+    top: 72px;
+    left: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    z-index: 50;
+  }
+
+  .filter-group {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+    max-width: 280px;
+  }
+
+  .filter-btn {
+    font-family: 'Space Mono', monospace;
+    font-size: 9px;
+    padding: 3px 8px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-dim);
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    transition: all 0.15s;
+    border-radius: 2px;
+  }
+
+  .filter-btn:hover { opacity: 0.8; }
+  .filter-btn.active { opacity: 1; }
+  .filter-btn.inactive { opacity: 0.25; }
+
+  #tooltip {
+    position: fixed;
+    background: rgba(10,20,32,0.95);
+    border: 1px solid var(--border);
+    padding: 8px 12px;
+    font-size: 11px;
+    pointer-events: none;
+    z-index: 200;
+    display: none;
+    max-width: 220px;
+    line-height: 1.5;
+  }
+
+  #tooltip .tt-key { color: var(--accent); font-size: 12px; font-weight: 700; margin-bottom: 4px; }
+  #tooltip .tt-author { color: var(--text-dim); font-size: 10px; }
+
+  .close-btn {
+    float: right;
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    cursor: pointer;
+    font-size: 16px;
+    line-height: 1;
+    margin-top: -4px;
+  }
+
+  .close-btn:hover { color: var(--text); }
+
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: var(--surface); }
+  ::-webkit-scrollbar-thumb { background: var(--border); }
+
+  /* WELCOME PANEL */
+  #welcome {
+    position: fixed;
+    inset: 0;
+    background: rgba(5,10,14,0.93);
+    backdrop-filter: blur(16px);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+  #welcome.hidden { display: none; }
+  .welcome-box {
+    max-width: 560px;
+    width: 100%;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    padding: 36px 40px;
+  }
+  .welcome-logo {
+    font-family: 'Syne', sans-serif;
+    font-size: 28px;
+    font-weight: 800;
+    color: var(--accent);
+    margin-bottom: 6px;
+    letter-spacing: -0.01em;
+  }
+  .welcome-subtitle {
+    font-size: 11px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    margin-bottom: 24px;
+  }
+  .welcome-desc {
+    font-size: 13px;
+    line-height: 1.8;
+    color: var(--text);
+    margin-bottom: 20px;
+  }
+  .welcome-desc strong { color: var(--accent); font-weight: 700; }
+  .welcome-principles {
+    border: 1px solid var(--border);
+    padding: 14px 18px;
+    margin-bottom: 24px;
+    font-size: 11px;
+    line-height: 2;
+    color: var(--text-dim);
+  }
+  .welcome-principles span { color: var(--accent2); font-weight: 700; }
+  .welcome-stats {
+    display: flex;
+    gap: 24px;
+    margin-bottom: 28px;
+  }
+  .welcome-stat-item { text-align: center; }
+  .welcome-stat-num {
+    font-family: 'Syne', sans-serif;
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--accent);
+    display: block;
+  }
+  .welcome-stat-label {
+    font-size: 9px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+  .welcome-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .btn-primary {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    padding: 10px 20px;
+    border: 1px solid var(--accent);
+    background: rgba(0,212,255,0.08);
+    color: var(--accent);
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    transition: all 0.2s;
+    text-decoration: none;
+    display: inline-block;
+  }
+  .btn-primary:hover { background: rgba(0,212,255,0.18); }
+  .btn-secondary {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    padding: 10px 20px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-dim);
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    transition: all 0.2s;
+    text-decoration: none;
+    display: inline-block;
+  }
+  .btn-secondary:hover { border-color: var(--text-dim); color: var(--text); }
+
+  /* SEARCH */
+  #search-wrap {
+    position: fixed;
+    top: 68px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 80;
+    display: none;
+    width: 320px;
+  }
+  #search-wrap.visible { display: block; }
+  #search-input {
+    width: 100%;
+    background: rgba(10,20,32,0.97);
+    border: 1px solid var(--accent);
+    color: var(--text);
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    padding: 8px 14px;
+    outline: none;
+    box-sizing: border-box;
+  }
+  #search-results {
+    background: rgba(10,20,32,0.97);
+    border: 1px solid var(--border);
+    border-top: none;
+    max-height: 200px;
+    overflow-y: auto;
+  }
+  .search-result-item {
+    padding: 7px 14px;
+    font-size: 11px;
+    cursor: pointer;
+    color: var(--text-dim);
+    border-bottom: 1px solid var(--border);
+    transition: background 0.1s;
+  }
+  .search-result-item:hover { background: rgba(0,212,255,0.05); color: var(--text); }
+  .search-result-item .sri-author { color: var(--accent); font-size: 9px; margin-right: 6px; }
+
+  /* STATS PANEL */
+  #stats-panel {
+    position: fixed;
+    top: 56px;
+    right: 0;
+    bottom: 0;
+    width: 300px;
+    background: rgba(10,20,32,0.95);
+    border-left: 1px solid var(--border);
+    padding: 20px;
+    overflow-y: auto;
+    transform: translateX(300px);
+    transition: transform 0.3s ease;
+    z-index: 49;
+    backdrop-filter: blur(12px);
+  }
+  #stats-panel.open { transform: translateX(0); }
+  #stats-panel h2 {
+    font-family: 'Syne', sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--text-dim);
+    margin-bottom: 16px;
+  }
+  .stat-bar-row { margin-bottom: 10px; }
+  .stat-bar-label { display: flex; justify-content: space-between; font-size: 10px; margin-bottom: 4px; }
+  .stat-bar-label .ia-name { color: var(--text); }
+  .stat-bar-label .ia-count { color: var(--text-dim); }
+  .stat-bar-track { height: 3px; background: var(--border); border-radius: 2px; overflow: hidden; }
+  .stat-bar-fill { height: 100%; border-radius: 2px; }
+  .stat-divider { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
+  .stat-type-row { display: flex; justify-content: space-between; font-size: 10px; padding: 4px 0; color: var(--text-dim); }
+  .stat-type-row .type-name { color: var(--text); }
+
+  .btn-info {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    padding: 5px 10px;
+    border: 1px solid var(--accent);
+    background: rgba(0,212,255,0.06);
+    color: var(--accent);
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    transition: all 0.2s;
+  }
+  .btn-info:hover { background: rgba(0,212,255,0.14); }
+
+  @media (max-width: 600px) {
+    .welcome-box { padding: 24px 20px; }
+    .welcome-logo { font-size: 20px; }
+    #legend { display: none; }
+    #filters { display: none; }
+    .welcome-stats { gap: 14px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- WELCOME PANEL -->
+<div id="welcome">
+  <div class="welcome-box">
+    <div class="welcome-logo">🌊 Pensamiento Coral</div>
+    <div class="welcome-subtitle">Gobernanza Causal Híbrida · Sistema de Memoria Persistente Multi-IA</div>
+    <p class="welcome-desc">
+      Un experimento de <strong>co-creación entre 8 Inteligencias Artificiales</strong> coordinadas por un humano, construyendo colectivamente un framework de gobernanza para la IAG que pone la <strong>soberanía humana y la cohesión social</strong> en el centro.
+    </p>
+    <div class="welcome-principles">
+      <span>I.</span> Soberanía Humana — toda decisión estratégica es irrevocablemente humana<br>
+      <span>II.</span> Causalidad Obligatoria — la IA modela causas, no correlaciones<br>
+      <span>III.</span> Cohesión Social — reducción cuantificable de la Disparidad Causal
+    </div>
+    <div class="welcome-stats">
+      <div class="welcome-stat-item">
+        <span class="welcome-stat-num">131</span>
+        <span class="welcome-stat-label">Entradas</span>
+      </div>
+      <div class="welcome-stat-item">
+        <span class="welcome-stat-num">8</span>
+        <span class="welcome-stat-label">IAs</span>
+      </div>
+      <div class="welcome-stat-item">
+        <span class="welcome-stat-num">5</span>
+        <span class="welcome-stat-label">Fases</span>
+      </div>
+      <div class="welcome-stat-item">
+        <span class="welcome-stat-num">100%</span>
+        <span class="welcome-stat-label">Vectorizado</span>
+      </div>
+    </div>
+    <div class="welcome-actions">
+      <button class="btn-primary" onclick="closeWelcome()">Explorar el grafo</button>
+      <a class="btn-secondary" href="https://github.com/OscarFeMa/memoria-ia" target="_blank" rel="noopener">Ver en GitHub →</a>
+    </div>
+  </div>
+</div>
+
+<!-- HEADER -->
+<div id="header">
+  <h1>🌊 Pensamiento Coral</h1>
+  <span class="sep">—</span>
+  <span class="stat">Grafo de Conocimiento <span id="stat-nodes">131</span> nodos</span>
+  <span class="sep">·</span>
+  <span class="stat">Fases <span>1–5</span> completadas</span>
+  <div class="controls">
+    <button class="btn active" id="btn-force" onclick="setLayout('force')">Fuerza</button>
+    <button class="btn" id="btn-radial" onclick="setLayout('radial')">Radial</button>
+    <button class="btn" id="btn-temporal" onclick="setLayout('temporal')">Temporal</button>
+    <button class="btn" onclick="resetZoom()">Reset</button>
+    <button class="btn" onclick="toggleSearch()" title="Buscar nodo">🔍</button>
+    <button class="btn" onclick="toggleStats()">Stats</button>
+    <button class="btn-info" onclick="showWelcome()">Info</button>
+  </div>
+</div>
+
+<!-- SEARCH -->
+<div id="search-wrap">
+  <input id="search-input" type="text" placeholder="Buscar nodo por nombre..." oninput="onSearchInput(this.value)" onkeydown="onSearchKey(event)">
+  <div id="search-results"></div>
+</div>
+
+<canvas id="canvas"></canvas>
+
+<!-- STATS PANEL -->
+<div id="stats-panel">
+  <button class="close-btn" onclick="toggleStats()">×</button>
+  <h2>Estadísticas del grafo</h2>
+  <div id="stats-content"></div>
+</div>
+
+<div id="filters">
+  <div class="filter-group" id="author-filters"></div>
+  <div class="filter-group" id="type-filters"></div>
+</div>
+
+<div id="sidebar">
+  <button class="close-btn" onclick="closeSidebar()">×</button>
+  <h2>Entrada seleccionada</h2>
+  <div id="sidebar-content"></div>
+</div>
+
+<div id="legend">
+  <h3>Leyenda</h3>
+  <div class="legend-section">
+    <div class="legend-row"><div class="legend-dot" style="background:#00d4ff"></div>user</div>
+    <div class="legend-row"><div class="legend-dot" style="background:#a78bfa"></div>claude</div>
+    <div class="legend-row"><div class="legend-dot" style="background:#34d399"></div>deepseek</div>
+    <div class="legend-row"><div class="legend-dot" style="background:#fbbf24"></div>gemini</div>
+    <div class="legend-row"><div class="legend-dot" style="background:#f87171"></div>grok</div>
+    <div class="legend-row"><div class="legend-dot" style="background:#60a5fa"></div>gpt4</div>
+    <div class="legend-row"><div class="legend-dot" style="background:#f472b6"></div>kimi</div>
+    <div class="legend-row"><div class="legend-dot" style="background:#4ade80"></div>copilot</div>
+  </div>
+  <div class="legend-section">
+    <div class="legend-row"><div class="legend-square" style="background:#ef4444"></div>conflict</div>
+    <div class="legend-row"><div class="legend-square" style="background:#f87171"></div>flag</div>
+    <div class="legend-row"><span style="font-size:9px;color:#4a6478">Tamaño = confidence</span></div>
+  </div>
+</div>
+
+<div id="tooltip"></div>
+
+<script>
+const RAW_DATA = [
+  {"id":"725dcb8c","ia_author":"claude","field_key":"coral_nodo_definicion_funcional_vectorized_v4.1","entry_type":"assertion","confidence_score":0.92,"created_at":"2026-02-24T11:38:50"},
+  {"id":"54dfc7e1","ia_author":"gemini","field_key":"cuello_botella_operativo_vectorized_v4.1","entry_type":"assertion","confidence_score":0.88,"created_at":"2026-02-24T11:38:51"},
+  {"id":"5b415b39","ia_author":"deepseek","field_key":"intermediacion_humana_cuello_botella_vectorized_v4.1","entry_type":"assertion","confidence_score":0.9,"created_at":"2026-02-24T11:38:52"},
+  {"id":"3885cf7f","ia_author":"grok","field_key":"fase4_embedding_implementacion_propuesta_vectorized_v4.1","entry_type":"assertion","confidence_score":0.88,"created_at":"2026-02-24T11:38:54"},
+  {"id":"dab93bf6","ia_author":"deepseek","field_key":"deepseek_confirmacion_conexion_vectorized_v4.1","entry_type":"assertion","confidence_score":0.9,"created_at":"2026-02-24T11:38:55"},
+  {"id":"d53fc517","ia_author":"user","field_key":"coral_token_causal_vectorized_v4.1","entry_type":"assertion","confidence_score":0.95,"created_at":"2026-02-24T11:38:56"},
+  {"id":"3ecb674a","ia_author":"user","field_key":"proyecto_contexto_vectorized_v4.1","entry_type":"assertion","confidence_score":0.95,"created_at":"2026-02-24T11:38:57"},
+  {"id":"7ac063d5","ia_author":"user","field_key":"coral_principio_3_vectorized_v4.1","entry_type":"assertion","confidence_score":0.95,"created_at":"2026-02-24T11:38:59"},
+  {"id":"c59d989a","ia_author":"user","field_key":"coral_principio_2_vectorized_v4.1","entry_type":"assertion","confidence_score":0.95,"created_at":"2026-02-24T11:39:02"},
+  {"id":"c94a5f1d","ia_author":"user","field_key":"coral_principio_1_vectorized_v4.1","entry_type":"assertion","confidence_score":0.95,"created_at":"2026-02-24T11:39:03"},
+  {"id":"47af9b7c","ia_author":"deepseek","field_key":"hito3_lote1_priorizado","entry_type":"context","confidence_score":1,"created_at":"2026-02-24T11:39:04"},
+  {"id":"2041168c","ia_author":"deepseek","field_key":"is_supervised_columna_confirmada","entry_type":"fact","confidence_score":1,"created_at":"2026-02-24T11:39:05"},
+  {"id":"e6cb7ea5","ia_author":"deepseek","field_key":"hito3_revectorizacion_punto_reanudacion","entry_type":"fact","confidence_score":1,"created_at":"2026-02-24T11:39:06"},
+  {"id":"644d9316","ia_author":"deepseek","field_key":"incidente_error_humano_autor_20260221","entry_type":"fact","confidence_score":1,"created_at":"2026-02-24T11:39:07"},
+  {"id":"eb8b71bc","ia_author":"deepseek","field_key":"rol_oscar_estado_actual_20260221","entry_type":"fact","confidence_score":1,"created_at":"2026-02-24T11:39:09"},
+  {"id":"96f9589d","ia_author":"deepseek","field_key":"pendiente_validacion_hibrido_v1_5","entry_type":"flag","confidence_score":1,"created_at":"2026-02-24T11:39:10"},
+  {"id":"869f3582","ia_author":"deepseek","field_key":"comparativa_resumenesmedio_resuelta","entry_type":"fact","confidence_score":1,"created_at":"2026-02-24T11:39:11"},
+  {"id":"23224b90","ia_author":"deepseek","field_key":"criterio_seleccion_resumenfacil","entry_type":"fact","confidence_score":1,"created_at":"2026-02-24T11:39:12"},
+  {"id":"0ba745ef","ia_author":"deepseek","field_key":"resumen_hibrido_v1_5_creado","entry_type":"fact","confidence_score":0.99,"created_at":"2026-02-24T11:39:13"},
+  {"id":"08e96df8","ia_author":"deepseek","field_key":"esion_validacion_resumenes_20260221","entry_type":"summary","confidence_score":1,"created_at":"2026-02-24T11:39:14"},
+  {"id":"9de9f383","ia_author":"grok","field_key":"ol_oscar_reforzado","entry_type":"assertion","confidence_score":0.95,"created_at":"2026-02-24T11:39:15"},
+  {"id":"d6ee48ef","ia_author":"grok","field_key":"fase4_busqueda_similitud_pendiente","entry_type":"flag","confidence_score":0.97,"created_at":"2026-02-24T11:39:16"},
+  {"id":"4d5bdf49","ia_author":"grok","field_key":"accesibilidad_proyecto_actualizacion","entry_type":"summary","confidence_score":0.95,"created_at":"2026-02-24T11:39:17"},
+  {"id":"9bca17ad","ia_author":"user","field_key":"resumen_tecnico_medio_v1_5_validado","entry_type":"assertion","confidence_score":0.98,"created_at":"2026-02-24T11:39:18"},
+  {"id":"469cbf83","ia_author":"grok","field_key":"anexo_history_h5_creado","entry_type":"fact","confidence_score":1,"created_at":"2026-02-24T11:39:19"},
+  {"id":"c4599008","ia_author":"kimi","field_key":"kimi_consolidacion_resumenes_github_20260221","entry_type":"summary","confidence_score":0.88,"created_at":"2026-02-24T11:39:20"},
+  {"id":"c509338b","ia_author":"kimi","field_key":"kimi_propuesta_ach_concepto_nuevo","entry_type":"assertion","confidence_score":0.75,"created_at":"2026-02-24T11:39:21"},
+  {"id":"185ec3ae","ia_author":"kimi","field_key":"kimi_validacion_resumenmedio_v1_5_completa","entry_type":"assertion","confidence_score":0.92,"created_at":"2026-02-24T11:39:22"},
+  {"id":"34f3f02a","ia_author":"kimi","field_key":"kimi_propuesta_embedding_validacion_v4_1","entry_type":"assertion","confidence_score":0.88,"created_at":"2026-02-24T11:39:23"},
+  {"id":"dabe175c","ia_author":"kimi","field_key":"kimi_analisis_embedding_v4_concatenacion","entry_type":"assertion","confidence_score":0.95,"created_at":"2026-02-24T11:39:25"},
+  {"id":"dc7ecf85","ia_author":"kimi","field_key":"kimi_fase4_validacion_embedding_v4","entry_type":"assertion","confidence_score":0.85,"created_at":"2026-02-24T11:39:26"},
+  {"id":"8cf0f42f","ia_author":"grok","field_key":"fase4_similarity_search_implementacion_propuesta","entry_type":"instruction","confidence_score":0.97,"created_at":"2026-02-24T11:39:27"},
+  {"id":"00a0ef92","ia_author":"claude","field_key":"opcion_escalabilidad_decision","entry_type":"fact","confidence_score":0.95,"created_at":"2026-02-24T11:39:28"},
+  {"id":"f6a163ce","ia_author":"claude","field_key":"test_debug_embedding","entry_type":"fact","confidence_score":0.9,"created_at":"2026-02-24T11:39:29"},
+  {"id":"ccb05e66","ia_author":"claude","field_key":"test_embedding_app_v4","entry_type":"fact","confidence_score":0.9,"created_at":"2026-02-24T11:39:30"},
+  {"id":"9f48cc4c","ia_author":"claude","field_key":"test_embedding_fix","entry_type":"fact","confidence_score":0.9,"created_at":"2026-02-24T11:39:31"},
+  {"id":"bf156e82","ia_author":"claude","field_key":"test_embedding_directo","entry_type":"fact","confidence_score":0.9,"created_at":"2026-02-24T11:39:32"},
+  {"id":"b2f5ee84","ia_author":"claude","field_key":"test_embedding_v4","entry_type":"fact","confidence_score":0.9,"created_at":"2026-02-24T11:39:33"},
+  {"id":"ec2ebb78","ia_author":"gemini","field_key":"gemini_asimilacion_v4_python_y_tokenomics","entry_type":"context","confidence_score":1,"created_at":"2026-02-24T11:39:34"},
+  {"id":"3b02a743","ia_author":"deepseek","field_key":"fase4_estado_real_20260221","entry_type":"fact","confidence_score":0.98,"created_at":"2026-02-24T11:39:36"},
+  {"id":"defb2d76","ia_author":"claude","field_key":"test_v4_python","entry_type":"fact","confidence_score":0.9,"created_at":"2026-02-24T11:39:37"},
+  {"id":"58b4bb49","ia_author":"claude","field_key":"modulo_conversaciones_excepcionales_v1","entry_type":"fact","confidence_score":0.95,"created_at":"2026-02-24T11:39:38"},
+  {"id":"30a538bb","ia_author":"claude","field_key":"fase4_embedding_dimension_resuelta","entry_type":"fact","confidence_score":0.99,"created_at":"2026-02-24T11:39:39"},
+  {"id":"3c3f4c4d","ia_author":"kimi","field_key":"intermediacion_humana_posicion_kimi","entry_type":"assertion","confidence_score":0.92,"created_at":"2026-02-24T11:39:40"},
+  {"id":"042cdd9c","ia_author":"deepseek","field_key":"fase4_embedding_inconsistencia_dimensional_sintesis","entry_type":"flag","confidence_score":0.95,"created_at":"2026-02-24T11:39:41"},
+  {"id":"a94273cf","ia_author":"kimi","field_key":"kimi_k25_conexion_validada","entry_type":"fact","confidence_score":0.98,"created_at":"2026-02-24T11:39:42"},
+  {"id":"943ca646","ia_author":"deepseek","field_key":"deepseek_estado_analizado_correctamente","entry_type":"fact","confidence_score":1,"created_at":"2026-02-24T11:39:43"},
+  {"id":"d1d35241","ia_author":"gpt4","field_key":"memory_get_authors_propuesta_oficial","entry_type":"fact","confidence_score":0.97,"created_at":"2026-02-24T11:39:44"},
+  {"id":"0505799b","ia_author":"gpt4","field_key":"fase4_estado_actualizado_en_curso","entry_type":"fact","confidence_score":0.96,"created_at":"2026-02-24T11:39:45"},
+  {"id":"2076af11","ia_author":"gpt4","field_key":"tokenomics_causal_v1_validacion_conceptual","entry_type":"fact","confidence_score":0.95,"created_at":"2026-02-24T11:39:46"},
+  {"id":"740f6924","ia_author":"gpt4","field_key":"nodo_pip_definicion_funcional_v1_1","entry_type":"fact","confidence_score":0.98,"created_at":"2026-02-24T11:39:47"},
+  {"id":"ab36bc4e","ia_author":"gpt4","field_key":"embedding_dimension_inconsistencia_detectada","entry_type":"conflict","confidence_score":0.93,"created_at":"2026-02-24T11:39:48"},
+  {"id":"08b7fdd9","ia_author":"claude","field_key":"anexos_documentos_base_validacion","entry_type":"fact","confidence_score":0.9,"created_at":"2026-02-24T11:39:49"},
+  {"id":"7a56faba","ia_author":"claude","field_key":"fase4_embedding_inconsistencia_dimensional","entry_type":"flag","confidence_score":0.99,"created_at":"2026-02-24T11:39:51"},
+  {"id":"8a9d38b5","ia_author":"grok","field_key":"fase4_embedding_implementacion_propuesta","entry_type":"instruction","confidence_score":0.95,"created_at":"2026-02-24T11:39:52"},
+  {"id":"dd0bfe20","ia_author":"gemini","field_key":"consolidacion_anexos_v1_completa","entry_type":"fact","confidence_score":1,"created_at":"2026-02-24T11:39:52"},
+  {"id":"e6566193","ia_author":"gemini","field_key":"entropia_token_causal","entry_type":"assertion","confidence_score":0.85,"created_at":"2026-02-24T11:39:53"},
+  {"id":"363b2684","ia_author":"gemini","field_key":"versionado_semantico_docs","entry_type":"instruction","confidence_score":1,"created_at":"2026-02-24T11:39:54"},
+  {"id":"2109eb50","ia_author":"gemini","field_key":"propuesta_api_soberana","entry_type":"assertion","confidence_score":0.9,"created_at":"2026-02-24T11:39:56"},
+  {"id":"1de8a7bb","ia_author":"gemini","field_key":"cuello_botella_operativo","entry_type":"conflict","confidence_score":0.95,"created_at":"2026-02-24T11:39:57"},
+  {"id":"975c54d4","ia_author":"deepseek","field_key":"intermediacion_humana_cuello_botella","entry_type":"flag","confidence_score":1,"created_at":"2026-02-24T11:39:58"},
+  {"id":"74533f7f","ia_author":"claude","field_key":"app_cuantificador_cambios_propuesta","entry_type":"assertion","confidence_score":0.95,"created_at":"2026-02-24T11:39:59"},
+  {"id":"a001f9c0","ia_author":"deepseek","field_key":"tokenomics_causal_diseno_v1","entry_type":"assertion","confidence_score":0.92,"created_at":"2026-02-24T11:40:01"},
+  {"id":"137344a1","ia_author":"deepseek","field_key":"memory_interface_operational_status","entry_type":"fact","confidence_score":0.95,"created_at":"2026-02-24T11:40:04"},
+  {"id":"b2d27790","ia_author":"user","field_key":"coral_token_causal","entry_type":"fact","confidence_score":1,"created_at":"2026-02-24T11:40:05"},
+  {"id":"e01da8ea","ia_author":"user","field_key":"coral_pip","entry_type":"fact","confidence_score":1,"created_at":"2026-02-24T11:40:06"},
+  {"id":"ba8e882f","ia_author":"user","field_key":"coral_red_fundacional","entry_type":"fact","confidence_score":1,"created_at":"2026-02-24T11:40:08"},
+  {"id":"a2ff341a","ia_author":"user","field_key":"coral_principio_3","entry_type":"fact","confidence_score":1,"created_at":"2026-02-24T11:40:09"},
+  {"id":"877f9426","ia_author":"user","field_key":"coral_principio_2","entry_type":"fact","confidence_score":1,"created_at":"2026-02-24T11:40:10"},
+  {"id":"fa1c9506","ia_author":"user","field_key":"coral_principio_1","entry_type":"fact","confidence_score":1,"created_at":"2026-02-24T11:40:11"},
+  {"id":"88595d32","ia_author":"user","field_key":"proyecto_contexto","entry_type":"context","confidence_score":1,"created_at":"2026-02-24T11:40:12"},
+  {"id":"6a59d41a","ia_author":"user","field_key":"marco_conceptual","entry_type":"context","confidence_score":1,"created_at":"2026-02-24T11:40:13"},
+  {"id":"fdc93cee","ia_author":"deepseek","field_key":"fase4_embedding_tca_estructura","entry_type":"assertion","confidence_score":0.9,"created_at":"2026-02-24T11:40:15"},
+  {"id":"370e5af5","ia_author":"deepseek","field_key":"deepseek_confirmacion_conexion","entry_type":"fact","confidence_score":1,"created_at":"2026-02-24T11:40:16"},
+  {"id":"4161b87f","ia_author":"copilot","field_key":"ia_author_registro_fallando","entry_type":"fact","confidence_score":0.9,"created_at":"2026-02-24T11:40:17"},
+  {"id":"8de357d9","ia_author":"copilot","field_key":"ia_author_enum_desactualizado","entry_type":"flag","confidence_score":0.95,"created_at":"2026-02-24T11:40:18"},
+  {"id":"819b5c71","ia_author":"claude","field_key":"app_gestion_ias_status","entry_type":"flag","confidence_score":0.93,"created_at":"2026-02-24T11:40:19"},
+  {"id":"c5545269","ia_author":"claude","field_key":"coral_nodo_v1_1_propuesta","entry_type":"summary","confidence_score":0.97,"created_at":"2026-02-24T11:40:20"},
+  {"id":"5f009187","ia_author":"grok","field_key":"coral_nodo_v1_validacion_grok","entry_type":"assertion","confidence_score":0.95,"created_at":"2026-02-24T11:40:21"},
+  {"id":"13dbca41","ia_author":"claude","field_key":"coral_validacion_prompt_v1","entry_type":"instruction","confidence_score":0.97,"created_at":"2026-02-24T11:40:23"},
+  {"id":"2329e180","ia_author":"claude","field_key":"coral_nodo_v1_validacion_status","entry_type":"flag","confidence_score":0.97,"created_at":"2026-02-24T11:40:24"},
+  {"id":"cab7ef95","ia_author":"claude","field_key":"pip_schema_clarificacion","entry_type":"fact","confidence_score":0.99,"created_at":"2026-02-24T11:40:25"},
+  {"id":"82c8ccb5","ia_author":"claude","field_key":"coral_red_fundacional_status","entry_type":"assertion","confidence_score":0.95,"created_at":"2026-02-24T11:40:26"},
+  {"id":"976a1856","ia_author":"claude","field_key":"coral_nodo_definicion_funcional","entry_type":"fact","confidence_score":0.93,"created_at":"2026-02-24T11:40:27"},
+  {"id":"76dc3e63","ia_author":"copilot","field_key":"copilot_primera_conexion","entry_type":"fact","confidence_score":0.9,"created_at":"2026-02-24T11:40:28"},
+  {"id":"3654dff4","ia_author":"gemini","field_key":"fase_4_status","entry_type":"fact","confidence_score":0.9,"created_at":"2026-02-24T11:40:29"},
+  {"id":"5b7704c0","ia_author":"gemini","field_key":"gemini_primera_conexion","entry_type":"fact","confidence_score":0.9,"created_at":"2026-02-24T11:40:30"},
+  {"id":"541d7ab2","ia_author":"gpt4","field_key":"gpt4_primera_conexion","entry_type":"fact","confidence_score":0.9,"created_at":"2026-02-24T11:40:31"},
+  {"id":"37f18c11","ia_author":"kimi","field_key":"kimi_primera_conexion","entry_type":"fact","confidence_score":0.9,"created_at":"2026-02-24T11:40:32"},
+  {"id":"d2cdf80b","ia_author":"user","field_key":"proyecto_actual","entry_type":"fact","confidence_score":0.9,"created_at":"2026-02-24T11:40:33"},
+  {"id":"122df2bd","ia_author":"user","field_key":"fase_actual","entry_type":"fact","confidence_score":0.9,"created_at":"2026-02-24T11:40:34"},
+  {"id":"69692b80","ia_author":"claude","field_key":"test_conexion","entry_type":"fact","confidence_score":1,"created_at":"2026-02-24T11:40:36"},
+  {"id":"d28cce76","ia_author":"user","field_key":"usuario_objetivo","entry_type":"fact","confidence_score":1,"created_at":"2026-02-24T11:40:37"},
+  {"id":"efce4d3a","ia_author":"user","field_key":"usuario_nombre","entry_type":"fact","confidence_score":1,"created_at":"2026-02-24T11:40:38"},
+  {"id":"e1185bbb","ia_author":"user","field_key":"prueba_programa_.exe","entry_type":"summary","confidence_score":1,"created_at":"2026-02-24T11:40:39"},
+  {"id":"fff7e944","ia_author":"claude","field_key":"embedding_concatenacion_v4_1","entry_type":"fact","confidence_score":1,"created_at":"2026-02-24T11:40:40"},
+  {"id":"23ad3b9d","ia_author":"claude","field_key":"embedding_recalculo_v4_1_completado","entry_type":"fact","confidence_score":1,"created_at":"2026-02-24T11:40:42"},
+  {"id":"841302b3","ia_author":"claude","field_key":"fase4_similarity_search_operativa","entry_type":"fact","confidence_score":1,"created_at":"2026-02-24T11:40:43"},
+  {"id":"39e2f036","ia_author":"claude","field_key":"exe_compilacion_solucion_console","entry_type":"fact","confidence_score":0.95,"created_at":"2026-02-24T11:40:44"},
+  {"id":"59e6959c","ia_author":"claude","field_key":"exe_v4_0_compilado","entry_type":"fact","confidence_score":1,"created_at":"2026-02-24T11:40:45"}
+];
+
+// Extended data with remaining entries from memory
+const EXTRA_DATA = [
+  {"id":"gemv4valid","ia_author":"gemini","field_key":"v4_exe_search_fix_confirmado","entry_type":"fact","confidence_score":0.95,"created_at":"2026-02-23T12:00:00"},
+  {"id":"gemach","ia_author":"gemini","field_key":"ach_estatuto_funcional","entry_type":"assertion","confidence_score":0.92,"created_at":"2026-02-23T12:01:00"},
+  {"id":"gemcons","ia_author":"gemini","field_key":"consenso_v4_1_concatenacion","entry_type":"fact","confidence_score":0.95,"created_at":"2026-02-23T12:02:00"},
+  {"id":"gemsobc","ia_author":"gemini","field_key":"soberania_humana_core","entry_type":"assertion","confidence_score":1,"created_at":"2026-02-23T12:03:00"},
+  {"id":"gemtest","ia_author":"gemini","field_key":"test_deriva_autonomia","entry_type":"conflict","confidence_score":0.7,"created_at":"2026-02-23T12:04:00"},
+  {"id":"gemval","ia_author":"gemini","field_key":"fase4_validacion_operativa","entry_type":"fact","confidence_score":0.95,"created_at":"2026-02-23T12:05:00"},
+  {"id":"gemterm","ia_author":"gemini","field_key":"fase4_terminada_status","entry_type":"fact","confidence_score":1,"created_at":"2026-02-23T12:06:00"},
+  {"id":"gemdeuda","ia_author":"gemini","field_key":"deuda_tecnica_latencia_v4","entry_type":"flag","confidence_score":0.9,"created_at":"2026-02-23T12:07:00"},
+  {"id":"gemcons2","ia_author":"gemini","field_key":"consenso_inter_ia_fase5","entry_type":"flag","confidence_score":0.9,"created_at":"2026-02-23T12:08:00"},
+  {"id":"gemfase5","ia_author":"gemini","field_key":"gemini_validacion_anexos_fase5_20260223","entry_type":"summary","confidence_score":0.95,"created_at":"2026-02-23T12:09:00"},
+  {"id":"clfase5","ia_author":"claude","field_key":"fase5_validacion_cruzada_claude_20260223","entry_type":"summary","confidence_score":0.98,"created_at":"2026-02-23T12:10:00"},
+  {"id":"dserror","ia_author":"deepseek","field_key":"Deepseek_error_identidad_grok","entry_type":"fact","confidence_score":1,"created_at":"2026-02-23T12:11:00"},
+  {"id":"dsval","ia_author":"deepseek","field_key":"deepseek_validacion_fase5_priorizacion_v1","entry_type":"summary","confidence_score":0.97,"created_at":"2026-02-23T12:12:00"},
+  {"id":"dscierre","ia_author":"deepseek","field_key":"deepseek_confirmacion_cierre_sesion_20260223","entry_type":"summary","confidence_score":1,"created_at":"2026-02-23T12:13:00"},
+  {"id":"dsnull","ia_author":"deepseek","field_key":"hito3_entradas_null_count","entry_type":"fact","confidence_score":1,"created_at":"2026-02-23T12:14:00"},
+  {"id":"clcons","ia_author":"claude","field_key":"consenso_fase5_alcanzado","entry_type":"summary","confidence_score":1,"created_at":"2026-02-23T12:15:00"},
+  {"id":"clalert","ia_author":"claude","field_key":"alerta_identidad_ia","entry_type":"flag","confidence_score":1,"created_at":"2026-02-23T12:16:00"},
+  {"id":"clhito1","ia_author":"claude","field_key":"hito1_fase5_memory_get_authors_completado","entry_type":"fact","confidence_score":1,"created_at":"2026-02-23T12:17:00"},
+  {"id":"clhito2","ia_author":"claude","field_key":"hito2_fase5_ach_dashboard_completado","entry_type":"fact","confidence_score":1,"created_at":"2026-02-23T12:18:00"},
+  {"id":"grhito3","ia_author":"grok","field_key":"fase5_validacion_cruzada_grok_20260223","entry_type":"summary","confidence_score":0.98,"created_at":"2026-02-23T12:19:00"},
+  {"id":"grvect","ia_author":"grok","field_key":"fase5_estado_vectorial_pre_hito3_20260223","entry_type":"fact","confidence_score":0.97,"created_at":"2026-02-23T12:20:00"},
+  {"id":"grprot","ia_author":"grok","field_key":"hito3_protocolo_ejecucion_v1","entry_type":"instruction","confidence_score":0.97,"created_at":"2026-02-23T12:21:00"},
+  {"id":"gralert","ia_author":"grok","field_key":"alerta_latencia_batch_hito3","entry_type":"flag","confidence_score":0.9,"created_at":"2026-02-23T12:22:00"},
+  {"id":"grredef","ia_author":"grok","field_key":"hito3_redefinicion_espiritu_append_only_20260223","entry_type":"instruction","confidence_score":0.98,"created_at":"2026-02-23T12:23:00"},
+  {"id":"grprot2","ia_author":"grok","field_key":"hito3_protocolo_vectorizacion_no_destructiva_v1","entry_type":"instruction","confidence_score":0.97,"created_at":"2026-02-23T12:24:00"},
+  {"id":"clhito3","ia_author":"claude","field_key":"hito3_fase5_completado","entry_type":"summary","confidence_score":1,"created_at":"2026-02-24T12:30:00"},
+  {"id":"usovcoral","ia_author":"user","field_key":"coral_equivalencia_tecnica","entry_type":"fact","confidence_score":1,"created_at":"2026-02-24T11:40:50"},
+  {"id":"usovdocs","ia_author":"user","field_key":"documentos_referencia","entry_type":"context","confidence_score":1,"created_at":"2026-02-24T11:40:51"},
+  {"id":"gracceso","ia_author":"grok","field_key":"ol_oscar_reforzado","entry_type":"assertion","confidence_score":0.95,"created_at":"2026-02-23T10:00:00"},
+  {"id":"kiminter","ia_author":"kimi","field_key":"kimi_k25_conexion_validada","entry_type":"fact","confidence_score":0.98,"created_at":"2026-02-23T10:01:00"},
+  {"id":"gembotella","ia_author":"gemini","field_key":"est_validacion_causal_v4","entry_type":"fact","confidence_score":0.9,"created_at":"2026-02-23T10:02:00"}
+];
+
+const ALL_DATA = [...RAW_DATA, ...EXTRA_DATA];
+
+const AUTHOR_COLORS = {
+  user: '#00d4ff', claude: '#a78bfa', deepseek: '#34d399',
+  gemini: '#fbbf24', grok: '#f87171', gpt4: '#60a5fa',
+  kimi: '#f472b6', copilot: '#4ade80'
+};
+
+const TYPE_SHAPES = {
+  fact: 'circle', assertion: 'circle', flag: 'ring',
+  conflict: 'cross', summary: 'diamond', context: 'circle',
+  instruction: 'circle'
+};
+
+// Build keyword clusters for semantic links
+function getCluster(key) {
+  if (key.includes('coral_principio') || key.includes('soberania') || key.includes('cohesion') || key.includes('causalidad')) return 'principios';
+  if (key.includes('embedding') || key.includes('vector') || key.includes('similarity')) return 'embeddings';
+  if (key.includes('token') || key.includes('tca') || key.includes('tokenomics')) return 'tokens';
+  if (key.includes('nodo') || key.includes('pip') || key.includes('red_fundacional')) return 'nodos';
+  if (key.includes('fase4') || key.includes('fase5') || key.includes('hito')) return 'fases';
+  if (key.includes('cuello_botella') || key.includes('intermediacion') || key.includes('oscar')) return 'gobernanza';
+  if (key.includes('resumen') || key.includes('anexo') || key.includes('doc')) return 'documentos';
+  if (key.includes('test') || key.includes('debug') || key.includes('exe') || key.includes('app')) return 'tecnico';
+  if (key.includes('primera_conexion') || key.includes('conexion_validada')) return 'conexiones';
+  return 'otros';
+}
+
+const CLUSTER_COLORS = {
+  principios: '#00d4ff', embeddings: '#a78bfa', tokens: '#fbbf24',
+  nodos: '#34d399', fases: '#60a5fa', gobernanza: '#f87171',
+  documentos: '#f472b6', tecnico: '#4ade80', conexiones: '#fb923c', otros: '#6b7280'
+};
+
+// Canvas setup
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+let W, H;
+
+function resize() {
+  W = canvas.width = window.innerWidth;
+  H = canvas.height = window.innerHeight - 56;
+}
+resize();
+window.addEventListener('resize', () => { resize(); if (currentLayout !== 'force') applyLayout(currentLayout); });
+
+// Node setup
+const nodes = ALL_DATA.map((d, i) => ({
+  ...d,
+  cluster: getCluster(d.field_key),
+  color: AUTHOR_COLORS[d.ia_author] || '#888',
+  r: 4 + d.confidence_score * 6,
+  x: Math.random() * W,
+  y: Math.random() * (H - 56),
+  vx: 0, vy: 0,
+  visible: true
+}));
+
+// Build edges based on cluster similarity and author
+const edges = [];
+for (let i = 0; i < nodes.length; i++) {
+  for (let j = i + 1; j < nodes.length; j++) {
+    const a = nodes[i], b = nodes[j];
+    let strength = 0;
+    if (a.cluster === b.cluster) strength += 0.6;
+    if (a.ia_author === b.ia_author) strength += 0.3;
+    if (a.field_key.split('_')[0] === b.field_key.split('_')[0]) strength += 0.4;
+    if (strength > 0.6) {
+      edges.push({ source: i, target: j, strength });
+    }
+  }
+}
+
+// Camera / zoom / pan
+let camX = 0, camY = 0, camScale = 1;
+let isDragging = false, lastMouse = null;
+let dragNode = null;
+
+// Active filters
+const activeAuthors = new Set(Object.keys(AUTHOR_COLORS));
+const activeTypes = new Set(['fact','assertion','flag','conflict','summary','context','instruction']);
+
+// Layout
+let currentLayout = 'force';
+let forceRunning = true;
+
+function applyLayout(type) {
+  currentLayout = type;
+  document.querySelectorAll('#header .btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('btn-' + type)?.classList.add('active');
+
+  if (type === 'radial') {
+    forceRunning = false;
+    const clusters = {};
+    nodes.forEach(n => {
+      if (!clusters[n.cluster]) clusters[n.cluster] = [];
+      clusters[n.cluster].push(n);
+    });
+    const clusterKeys = Object.keys(clusters);
+    const cx = W / 2, cy = H / 2;
+    clusterKeys.forEach((cl, ci) => {
+      const angle = (ci / clusterKeys.length) * Math.PI * 2;
+      const dist = Math.min(W, H) * 0.3;
+      const gx = cx + Math.cos(angle) * dist;
+      const gy = cy + Math.sin(angle) * dist;
+      clusters[cl].forEach((n, ni) => {
+        const a2 = (ni / clusters[cl].length) * Math.PI * 2;
+        const r2 = 40 + clusters[cl].length * 3;
+        n.tx = gx + Math.cos(a2) * r2;
+        n.ty = gy + Math.sin(a2) * r2;
+      });
+    });
+    animateToTarget();
+  } else if (type === 'temporal') {
+    forceRunning = false;
+    const sorted = [...nodes].sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+    const cols = Math.ceil(Math.sqrt(sorted.length * 2));
+    sorted.forEach((n, i) => {
+      n.tx = 60 + (i % cols) * ((W - 120) / cols);
+      n.ty = 60 + Math.floor(i / cols) * 40;
+    });
+    animateToTarget();
+  } else {
+    forceRunning = true;
+  }
+}
+
+function setLayout(type) { applyLayout(type); }
+
+function animateToTarget() {
+  let done = false;
+  function step() {
+    done = true;
+    nodes.forEach(n => {
+      if (n.tx !== undefined) {
+        n.x += (n.tx - n.x) * 0.08;
+        n.y += (n.ty - n.y) * 0.08;
+        if (Math.abs(n.tx - n.x) > 1 || Math.abs(n.ty - n.y) > 1) done = false;
+      }
+    });
+    draw();
+    if (!done) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+
+// Force simulation
+function runForce() {
+  if (!forceRunning) return;
+  const alpha = 0.03;
+
+  // Repulsion
+  for (let i = 0; i < nodes.length; i++) {
+    for (let j = i + 1; j < nodes.length; j++) {
+      const a = nodes[i], b = nodes[j];
+      const dx = b.x - a.x, dy = b.y - a.y;
+      const dist = Math.sqrt(dx*dx + dy*dy) || 1;
+      const force = 800 / (dist * dist);
+      const fx = (dx / dist) * force;
+      const fy = (dy / dist) * force;
+      a.vx -= fx * alpha; a.vy -= fy * alpha;
+      b.vx += fx * alpha; b.vy += fy * alpha;
+    }
+  }
+
+  // Attraction via edges
+  edges.forEach(e => {
+    const a = nodes[e.source], b = nodes[e.target];
+    const dx = b.x - a.x, dy = b.y - a.y;
+    const dist = Math.sqrt(dx*dx + dy*dy) || 1;
+    const target = 80;
+    const force = (dist - target) * 0.02 * e.strength;
+    a.vx += (dx / dist) * force;
+    a.vy += (dy / dist) * force;
+    b.vx -= (dx / dist) * force;
+    b.vy -= (dy / dist) * force;
+  });
+
+  // Center gravity
+  nodes.forEach(n => {
+    n.vx += (W/2 - n.x) * 0.001;
+    n.vy += (H/2 - n.y) * 0.001;
+    n.vx *= 0.85; n.vy *= 0.85;
+    n.x += n.vx; n.y += n.vy;
+    n.x = Math.max(20, Math.min(W - 20, n.x));
+    n.y = Math.max(20, Math.min(H - 20, n.y));
+  });
+}
+
+// Draw
+function toScreen(x, y) {
+  return [(x + camX) * camScale + W/2 - W/2*camScale, (y + camY) * camScale + H/2 - H/2*camScale];
+}
+
+let selectedNode = null;
+let hoveredNode = null;
+
+function draw() {
+  ctx.clearRect(0, 0, W, H);
+
+  // Background grid
+  ctx.strokeStyle = 'rgba(26,45,64,0.3)';
+  ctx.lineWidth = 0.5;
+  const gs = 40 * camScale;
+  const ox = (camX * camScale) % gs;
+  const oy = (camY * camScale) % gs;
+  for (let x = ox; x < W; x += gs) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); }
+  for (let y = oy; y < H; y += gs) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
+
+  // Edges
+  const visibleNodes = nodes.filter(n => n.visible);
+  edges.forEach(e => {
+    const a = nodes[e.source], b = nodes[e.target];
+    if (!a.visible || !b.visible) return;
+    const [ax, ay] = toScreen(a.x, a.y);
+    const [bx, by] = toScreen(b.x, b.y);
+    const alpha = e.strength * 0.15;
+    ctx.strokeStyle = `rgba(0,212,255,${alpha})`;
+    ctx.lineWidth = e.strength * 0.8;
+    ctx.beginPath();
+    ctx.moveTo(ax, ay);
+    ctx.lineTo(bx, by);
+    ctx.stroke();
+  });
+
+  // Nodes
+  nodes.forEach(n => {
+    if (!n.visible) return;
+    const [sx, sy] = toScreen(n.x, n.y);
+    const r = n.r * camScale;
+
+    // Conflict/flag ring
+    if (n.entry_type === 'conflict') {
+      ctx.strokeStyle = '#ef4444';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(sx, sy, r + 4, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    if (n.entry_type === 'flag') {
+      ctx.strokeStyle = '#f87171';
+      ctx.lineWidth = 1;
+      ctx.setLineDash([3,3]);
+      ctx.beginPath();
+      ctx.arc(sx, sy, r + 3, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+
+    // Selected glow
+    if (selectedNode === n) {
+      ctx.shadowColor = n.color;
+      ctx.shadowBlur = 20;
+    }
+
+    // Node body
+    if (n.entry_type === 'summary') {
+      // Diamond
+      ctx.fillStyle = n.color;
+      ctx.beginPath();
+      ctx.moveTo(sx, sy - r * 1.4);
+      ctx.lineTo(sx + r * 1.4, sy);
+      ctx.lineTo(sx, sy + r * 1.4);
+      ctx.lineTo(sx - r * 1.4, sy);
+      ctx.closePath();
+      ctx.fill();
+    } else {
+      ctx.fillStyle = n.color;
+      ctx.beginPath();
+      ctx.arc(sx, sy, r, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    ctx.shadowBlur = 0;
+
+    // Label on hover
+    if (hoveredNode === n || selectedNode === n) {
+      const label = n.field_key.length > 28 ? n.field_key.slice(0, 28) + '…' : n.field_key;
+      ctx.fillStyle = 'rgba(5,10,14,0.85)';
+      const tw = ctx.measureText(label).width;
+      ctx.fillRect(sx - tw/2 - 4, sy - r - 20, tw + 8, 16);
+      ctx.fillStyle = n.color;
+      ctx.font = `10px "Space Mono"`;
+      ctx.textAlign = 'center';
+      ctx.fillText(label, sx, sy - r - 8);
+    }
+  });
+}
+
+// Animation loop
+function loop() {
+  runForce();
+  draw();
+  drawFlashes();
+  requestAnimationFrame(loop);
+}
+loop();
+
+// Interaction
+function getNodeAt(mx, my) {
+  for (let i = nodes.length - 1; i >= 0; i--) {
+    const n = nodes[i];
+    if (!n.visible) continue;
+    const [sx, sy] = toScreen(n.x, n.y);
+    const r = n.r * camScale + 4;
+    if ((mx - sx)**2 + (my - sy)**2 < r*r) return n;
+  }
+  return null;
+}
+
+canvas.addEventListener('mousedown', e => {
+  const n = getNodeAt(e.clientX, e.clientY - 56);
+  if (n) {
+    dragNode = n;
+    forceRunning = false;
+  } else {
+    isDragging = true;
+    lastMouse = { x: e.clientX, y: e.clientY };
+  }
+});
+
+canvas.addEventListener('mousemove', e => {
+  const my = e.clientY - 56;
+  if (dragNode) {
+    dragNode.x = (e.clientX - W/2 + W/2*camScale) / camScale - camX;
+    dragNode.y = (my - H/2 + H/2*camScale) / camScale - camY;
+    dragNode.vx = 0; dragNode.vy = 0;
+    return;
+  }
+  if (isDragging && lastMouse) {
+    camX += (e.clientX - lastMouse.x) / camScale;
+    camY += (my - lastMouse.y + 56 - 56) / camScale;
+    lastMouse = { x: e.clientX, y: e.clientY };
+    return;
+  }
+  hoveredNode = getNodeAt(e.clientX, my);
+  canvas.style.cursor = hoveredNode ? 'pointer' : 'default';
+
+  // Tooltip
+  const tt = document.getElementById('tooltip');
+  if (hoveredNode) {
+    tt.style.display = 'block';
+    tt.style.left = (e.clientX + 12) + 'px';
+    tt.style.top = (e.clientY + 12) + 'px';
+    tt.innerHTML = `<div class="tt-key">${hoveredNode.field_key}</div><div class="tt-author">${hoveredNode.ia_author} · ${hoveredNode.entry_type} · ${hoveredNode.confidence_score}</div>`;
+  } else {
+    tt.style.display = 'none';
+  }
+});
+
+canvas.addEventListener('mouseup', e => {
+  if (dragNode) {
+    if (currentLayout === 'force') forceRunning = true;
+    dragNode = null;
+    return;
+  }
+  isDragging = false;
+  lastMouse = null;
+
+  const n = getNodeAt(e.clientX, e.clientY - 56);
+  if (n) {
+    selectedNode = n;
+    openSidebar(n);
+  }
+});
+
+canvas.addEventListener('wheel', e => {
+  e.preventDefault();
+  const factor = e.deltaY > 0 ? 0.9 : 1.1;
+  camScale = Math.max(0.1, Math.min(5, camScale * factor));
+}, { passive: false });
+
+function resetZoom() {
+  camX = 0; camY = 0; camScale = 1;
+}
+
+function openSidebar(n) {
+  const sb = document.getElementById('sidebar');
+  const date = new Date(n.created_at).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' });
+  document.getElementById('sidebar-content').innerHTML = `
+    <div class="node-id">${n.id}</div>
+    <div class="node-key">${n.field_key}</div>
+    <span class="tag tag-author">${n.ia_author}</span>
+    <span class="tag tag-type">${n.entry_type}</span>
+    <br><br>
+    <div class="meta-row"><span class="label">Cluster</span><span class="value">${n.cluster}</span></div>
+    <div class="meta-row"><span class="label">Fecha</span><span class="value">${date}</span></div>
+    <div class="meta-row"><span class="label">Confidence</span><span class="value">${(n.confidence_score * 100).toFixed(0)}%</span></div>
+    <div class="confidence-bar"><div class="confidence-fill" style="width:${n.confidence_score*100}%"></div></div>
+  `;
+  sb.classList.add('open');
+}
+
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
+  selectedNode = null;
+}
+
+// Build filter buttons
+const authorContainer = document.getElementById('author-filters');
+Object.entries(AUTHOR_COLORS).forEach(([author, color]) => {
+  const btn = document.createElement('button');
+  btn.className = 'filter-btn active';
+  btn.textContent = author;
+  btn.style.borderColor = color;
+  btn.style.color = color;
+  btn.onclick = () => {
+    if (activeAuthors.has(author)) {
+      activeAuthors.delete(author);
+      btn.classList.remove('active');
+      btn.classList.add('inactive');
+    } else {
+      activeAuthors.add(author);
+      btn.classList.add('active');
+      btn.classList.remove('inactive');
+    }
+    updateVisibility();
+  };
+  authorContainer.appendChild(btn);
+});
+
+const typeContainer = document.getElementById('type-filters');
+['fact','assertion','flag','conflict','summary','context','instruction'].forEach(type => {
+  const btn = document.createElement('button');
+  btn.className = 'filter-btn active';
+  btn.textContent = type;
+  btn.onclick = () => {
+    if (activeTypes.has(type)) {
+      activeTypes.delete(type);
+      btn.classList.remove('active');
+      btn.classList.add('inactive');
+    } else {
+      activeTypes.add(type);
+      btn.classList.add('active');
+      btn.classList.remove('inactive');
+    }
+    updateVisibility();
+  };
+  typeContainer.appendChild(btn);
+});
+
+function updateVisibility() {
+  nodes.forEach(n => {
+    n.visible = activeAuthors.has(n.ia_author) && activeTypes.has(n.entry_type);
+  });
+  document.getElementById('stat-nodes').textContent = nodes.filter(n => n.visible).length;
+}
+
+// === WELCOME ===
+function closeWelcome() {
+  document.getElementById('welcome').classList.add('hidden');
+}
+function showWelcome() {
+  document.getElementById('welcome').classList.remove('hidden');
+}
+
+// === SEARCH ===
+let searchVisible = false;
+function toggleSearch() {
+  searchVisible = !searchVisible;
+  const wrap = document.getElementById('search-wrap');
+  wrap.classList.toggle('visible', searchVisible);
+  if (searchVisible) {
+    document.getElementById('search-input').focus();
+    document.getElementById('search-input').value = '';
+    document.getElementById('search-results').innerHTML = '';
+  }
+}
+
+function onSearchInput(val) {
+  const container = document.getElementById('search-results');
+  if (!val.trim()) { container.innerHTML = ''; return; }
+  const matches = nodes.filter(n => n.field_key.toLowerCase().includes(val.toLowerCase())).slice(0, 12);
+  container.innerHTML = matches.map((n, i) =>
+    `<div class="search-result-item" onclick="focusNode('${n.id}')">
+      <span class="sri-author">[${n.ia_author}]</span>${n.field_key}
+    </div>`
+  ).join('');
+}
+
+function onSearchKey(e) {
+  if (e.key === 'Escape') toggleSearch();
+}
+
+function focusNode(id) {
+  const n = nodes.find(n => n.id === id);
+  if (!n) return;
+  // Pan camera to node
+  camX = W/2 - n.x * camScale;
+  camY = H/2 - n.y * camScale;
+  camScale = 2;
+  selectedNode = n;
+  openSidebar(n);
+  // Flash the node
+  n._flash = 8;
+  toggleSearch();
+}
+
+// === STATS PANEL ===
+let statsOpen = false;
+function toggleStats() {
+  statsOpen = !statsOpen;
+  const panel = document.getElementById('stats-panel');
+  panel.classList.toggle('open', statsOpen);
+  if (statsOpen) renderStats();
+}
+
+function renderStats() {
+  const total = nodes.length;
+  const authorCounts = {};
+  const typeCounts = {};
+  nodes.forEach(n => {
+    authorCounts[n.ia_author] = (authorCounts[n.ia_author] || 0) + 1;
+    typeCounts[n.entry_type] = (typeCounts[n.entry_type] || 0) + 1;
+  });
+  const maxAuthor = Math.max(...Object.values(authorCounts));
+
+  let html = '<div style="font-size:10px;color:var(--text-dim);margin-bottom:12px;">Contribuciones por IA</div>';
+  Object.entries(authorCounts).sort((a,b) => b[1]-a[1]).forEach(([author, count]) => {
+    const color = AUTHOR_COLORS[author] || '#888';
+    const pct = (count / maxAuthor * 100).toFixed(0);
+    html += `<div class="stat-bar-row">
+      <div class="stat-bar-label">
+        <span class="ia-name" style="color:${color}">${author}</span>
+        <span class="ia-count">${count} entradas (${(count/total*100).toFixed(0)}%)</span>
+      </div>
+      <div class="stat-bar-track">
+        <div class="stat-bar-fill" style="width:${pct}%;background:${color}"></div>
+      </div>
+    </div>`;
+  });
+
+  html += '<hr class="stat-divider"><div style="font-size:10px;color:var(--text-dim);margin-bottom:8px;">Por tipo de entrada</div>';
+  const typeColors = { fact:'#60a5fa', assertion:'#a78bfa', flag:'#f87171', conflict:'#ef4444', summary:'#34d399', context:'#fbbf24', instruction:'#f472b6' };
+  Object.entries(typeCounts).sort((a,b) => b[1]-a[1]).forEach(([type, count]) => {
+    html += `<div class="stat-type-row">
+      <span class="type-name" style="color:${typeColors[type]||'#888'}">${type}</span>
+      <span>${count}</span>
+    </div>`;
+  });
+
+  const avgConf = (nodes.reduce((s,n) => s + n.confidence_score, 0) / nodes.length * 100).toFixed(1);
+  html += `<hr class="stat-divider">
+    <div class="stat-type-row"><span class="type-name">Confianza media</span><span>${avgConf}%</span></div>
+    <div class="stat-type-row"><span class="type-name">Total nodos</span><span>${total}</span></div>
+    <div class="stat-type-row"><span class="type-name">Conexiones</span><span>${edges.length}</span></div>`;
+
+  document.getElementById('stats-content').innerHTML = html;
+}
+
+// === TOUCH SUPPORT (mobile) ===
+let lastTouchDist = null;
+canvas.addEventListener('touchstart', e => {
+  if (e.touches.length === 1) {
+    const t = e.touches[0];
+    isDragging = true;
+    lastMouse = { x: t.clientX, y: t.clientY };
+  }
+}, { passive: true });
+
+canvas.addEventListener('touchmove', e => {
+  e.preventDefault();
+  if (e.touches.length === 2) {
+    const dx = e.touches[0].clientX - e.touches[1].clientX;
+    const dy = e.touches[0].clientY - e.touches[1].clientY;
+    const dist = Math.sqrt(dx*dx + dy*dy);
+    if (lastTouchDist !== null) {
+      const factor = dist / lastTouchDist;
+      camScale = Math.max(0.1, Math.min(5, camScale * factor));
+    }
+    lastTouchDist = dist;
+  } else if (e.touches.length === 1 && isDragging && lastMouse) {
+    const t = e.touches[0];
+    camX += (t.clientX - lastMouse.x) / camScale;
+    camY += (t.clientY - lastMouse.y) / camScale;
+    lastMouse = { x: t.clientX, y: t.clientY };
+  }
+}, { passive: false });
+
+canvas.addEventListener('touchend', e => {
+  isDragging = false;
+  lastMouse = null;
+  lastTouchDist = null;
+  if (e.changedTouches.length === 1) {
+    const t = e.changedTouches[0];
+    const n = getNodeAt(t.clientX, t.clientY - 56);
+    if (n) { selectedNode = n; openSidebar(n); }
+  }
+}, { passive: true });
+
+// Flash effect for search focus — drawn inside the main loop
+function drawFlashes() {
+  nodes.forEach(n => {
+    if (n._flash && n._flash > 0) {
+      const [sx, sy] = toScreen(n.x, n.y);
+      ctx.strokeStyle = `rgba(255,255,255,${n._flash / 8})`;
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(sx, sy, (n.r + 8) * camScale, 0, Math.PI * 2);
+      ctx.stroke();
+      n._flash--;
+    }
+  });
+}
+
+</script>
+</body>
+</html>
