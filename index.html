@@ -3,132 +3,58 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Grafo de Conocimiento — Pensamiento Coral (Sync Live)</title>
+<title>Grafo de Conocimiento — Pensamiento Coral (Live Sync)</title>
 <script src="https://unpkg.com/force-graph"></script>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@400;600;800&display=swap');
-
-  :root {
-    --bg: #050a0e;
-    --surface: #0a1420;
-    --border: #1a2d40;
-    --text: #c8dde8;
-    --accent: #00d4ff;
-    --accent-dim: rgba(0, 212, 255, 0.15);
-  }
-
+  @import url('https://fonts.googleapis.com/css2?family=Space+Mono&family=Syne:wght@800&display=swap');
+  :root { --bg: #050a0e; --accent: #00d4ff; --text: #c8dde8; --border: #1a2d40; }
   body { margin: 0; background: var(--bg); color: var(--text); font-family: 'Space Mono', monospace; overflow: hidden; }
-
-  /* HEADER */
-  #header {
-    position: fixed; top: 0; left: 0; right: 0; height: 56px;
-    background: rgba(5,10,14,0.92); border-bottom: 1px solid var(--border);
-    display: flex; align-items: center; padding: 0 24px; z-index: 100; backdrop-filter: blur(12px);
-  }
-
-  h1 { font-family: 'Syne', sans-serif; font-size: 14px; text-transform: uppercase; color: var(--accent); margin: 0; letter-spacing: 1px; }
-
-  .controls { margin-left: auto; display: flex; align-items: center; gap: 12px; }
-
-  .btn-sync-toggle {
-    background: var(--accent-dim); border: 1px solid var(--accent);
-    color: var(--accent); padding: 6px 14px; cursor: pointer;
-    font-family: 'Space Mono'; font-size: 11px; font-weight: bold;
-    text-transform: uppercase; border-radius: 4px; transition: all 0.2s;
-  }
-  .btn-sync-toggle:hover { background: var(--accent); color: var(--bg); box-shadow: 0 0 15px var(--accent); }
-
-  /* PANEL DE SINCRONIZACIÓN */
-  #sync-panel {
-    position: fixed; top: 65px; right: 24px; width: 340px;
-    background: var(--surface); border: 1px solid var(--border);
-    padding: 20px; display: none; flex-direction: column; gap: 15px; z-index: 1000;
-    box-shadow: 0 10px 40px rgba(0,0,0,0.6);
-  }
-
-  .panel-title { color: var(--accent); font-weight: bold; font-size: 12px; border-bottom: 1px solid var(--border); padding-bottom: 8px; }
-
-  input { 
-    background: #050a0e; border: 1px solid var(--border); 
-    color: white; padding: 10px; font-family: 'Space Mono'; font-size: 11px; width: 100%; box-sizing: border-box;
-  }
-
-  .btn-action {
-    background: var(--accent); color: var(--bg); border: none;
-    padding: 12px; font-weight: bold; cursor: pointer; font-family: 'Space Mono';
-  }
-
-  #graph-container { width: 100vw; height: 100vh; }
-  
-  #status-msg { font-size: 10px; margin-top: 5px; }
+  #header { position: fixed; top: 0; width: 100%; height: 60px; background: rgba(10,20,32,0.9); border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 24px; z-index: 100; backdrop-filter: blur(10px); }
+  .logo { font-family: 'Syne'; color: var(--accent); font-size: 14px; text-transform: uppercase; letter-spacing: 1px; }
+  .sync-btn { margin-left: auto; background: rgba(0,212,255,0.1); border: 1px solid var(--accent); color: var(--accent); padding: 8px 16px; cursor: pointer; font-family: 'Space Mono'; font-size: 11px; font-weight: bold; border-radius: 4px; }
+  .sync-btn:hover { background: var(--accent); color: var(--bg); box-shadow: 0 0 15px var(--accent); }
+  #status-bar { position: fixed; bottom: 20px; left: 20px; font-size: 10px; color: #4a6478; z-index: 100; background: rgba(5,10,14,0.8); padding: 5px 10px; border-radius: 4px; }
 </style>
 </head>
 <body>
-
 <div id="header">
-  <h1>🌊 Pensamiento Coral</h1>
-  <div style="margin-left: 20px; font-size: 10px; opacity: 0.5;">NODOS: <span id="node-count">---</span></div>
-  
-  <div class="controls">
-    <button class="btn-sync-toggle" onclick="toggleSync()">⟳ Sync</button>
-  </div>
+  <div class="logo">🌊 Pensamiento Coral</div>
+  <div style="margin-left:20px; font-size:11px; opacity:0.6;">NODOS: <span id="count">---</span></div>
+  <button class="sync-btn" onclick="runSync()">⟳ ACTUALIZAR GRAFO</button>
 </div>
-
-<div id="sync-panel">
-  <div class="panel-title">SINCRONIZACIÓN LIVE</div>
-  <div>
-    <div style="font-size: 9px; margin-bottom: 5px; color: #666;">SUPABASE ENDPOINT:</div>
-    <input type="text" id="api-url" value="https://jdbzjapshomatwyasmig.supabase.co/functions/v1/memory-export-graph">
-  </div>
-  <button class="btn-action" onclick="runSync()">CARGAR DESDE SUPABASE</button>
-  <div id="status-msg"></div>
-</div>
-
+<div id="status-bar">INICIALIZANDO...</div>
 <div id="graph-container"></div>
-
 <script>
-  let graph;
-  const countEl = document.getElementById('node-count');
-  const statusEl = document.getElementById('status-msg');
+  const API_URL = "https://jdbzjapshomatwyasmig.supabase.co/functions/v1/memory-export-graph";
+  const statusEl = document.getElementById('status-bar');
+  const countEl = document.getElementById('count');
 
-  // Inicializar el grafo vacío
-  graph = ForceGraph()(document.getElementById('graph-container'))
+  const Graph = ForceGraph()(document.getElementById('graph-container'))
     .nodeId('id')
     .nodeLabel('field_key')
     .nodeAutoColorBy('ia_author')
     .linkDirectionalParticles(2)
     .backgroundColor('#050a0e');
 
-  function toggleSync() {
-    const p = document.getElementById('sync-panel');
-    p.style.display = (p.style.display === 'flex') ? 'none' : 'flex';
-  }
-
   async function runSync() {
-    const url = document.getElementById('api-url').value;
-    statusEl.innerText = "⟳ Conectando...";
-    statusEl.style.color = "var(--accent)";
-
+    statusEl.innerText = "⟳ CONECTANDO CON SUPABASE...";
+    statusEl.style.color = "#00d4ff";
     try {
-      const response = await fetch(url);
-      if (!response.ok) throw new Error('Error en respuesta');
+      const response = await fetch(API_URL);
+      if (!response.ok) throw new Error('Error de conexión');
       const data = await response.json();
-      
       if (data.nodes) {
-        graph.graphData(data);
+        Graph.graphData(data);
         countEl.innerText = data.nodes.length;
-        statusEl.innerText = "✓ Sincronizado: " + data.nodes.length + " nodos.";
+        statusEl.innerText = "✓ " + data.nodes.length + " NODOS SINCRONIZADOS CORRECTAMENTE";
         statusEl.style.color = "#4ade80";
-        setTimeout(toggleSync, 1500); // Cerrar panel
       }
     } catch (err) {
-      statusEl.innerText = "✗ Error: " + err.message;
-      statusEl.style.color = "#ff4444";
+      statusEl.innerText = "✗ ERROR: " + err.message;
+      statusEl.style.color = "#f87171";
     }
   }
-
-  // Intentar carga inicial automática
-  runSync();
+  runSync(); // Carga automática al abrir
 </script>
 </body>
 </html>
