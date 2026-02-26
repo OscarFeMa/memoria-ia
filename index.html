@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Grafo Analítico — Pensamiento Coral</title>
+<title>Grafo Analítico V3 — Pensamiento Coral</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@400;600;800&display=swap');
@@ -40,17 +40,17 @@
     pointer-events: none;
   }
   .title-group { pointer-events: auto; }
-  h1 { margin: 0; font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.2rem; text-transform: uppercase; color: var(--primary); }
-  #entry-counter { font-size: 0.7rem; border: 1px solid var(--primary); padding: 2px 8px; border-radius: 4px; margin-left: 10px; background: rgba(0,242,255,0.1); }
+  h1 { margin: 0; font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.2rem; text-transform: uppercase; color: var(--primary); letter-spacing: 1px; }
+  #entry-counter { font-size: 0.7rem; border: 1px solid var(--primary); padding: 2px 10px; border-radius: 4px; margin-left: 10px; background: rgba(0,242,255,0.1); font-weight: bold; }
 
-  /* PANEL DE GRÁFICOS INFERIOR */
+  /* PANEL DE ANALÍTICA INFERIOR */
   #analytics-panel {
     position: absolute; bottom: 0; left: 0; right: 0;
-    height: 300px; background: rgba(10,20,29,0.98);
+    height: 320px; background: rgba(10,20,29,0.98);
     border-top: 1px solid rgba(0,242,255,0.2);
-    backdrop-filter: blur(20px);
-    z-index: 200; transform: translateY(250px);
-    transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    backdrop-filter: blur(25px);
+    z-index: 200; transform: translateY(270px);
+    transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
   }
   #analytics-panel.open { transform: translateY(0); }
   
@@ -61,52 +61,53 @@
     border-bottom: 1px solid rgba(255,255,255,0.05);
   }
 
-  .tabs { display: flex; gap: 10px; padding: 10px 1.5rem; }
+  .tabs { display: flex; gap: 10px; padding: 12px 1.5rem; }
   .tab-btn {
     background: none; border: 1px solid rgba(255,255,255,0.1);
-    color: var(--text-dim); padding: 5px 15px; cursor: pointer;
+    color: var(--text-dim); padding: 6px 16px; cursor: pointer;
     font-family: 'Space Mono'; font-size: 0.7rem; border-radius: 4px;
-    transition: 0.3s;
+    transition: all 0.2s;
   }
-  .tab-btn.active { border-color: var(--primary); color: var(--primary); background: rgba(0,242,255,0.1); }
-  .tab-btn:hover { background: rgba(255,255,255,0.05); }
+  .tab-btn.active { border-color: var(--primary); color: var(--primary); background: rgba(0,242,255,0.15); }
+  .tab-btn:hover { background: rgba(255,255,255,0.08); color: white; }
 
-  .chart-container { height: 180px; padding: 0 20px; position: relative; }
+  .chart-container { height: 180px; padding: 0 30px; position: relative; }
 
   /* SIDEBAR */
   #sidebar {
     position: absolute; right: -400px; top: 0; bottom: 0;
-    width: 350px; background: rgba(10,20,29,0.98);
+    width: 350px; background: rgba(10,20,29,0.99);
     border-left: 1px solid rgba(0,242,255,0.2);
-    z-index: 300; transition: right 0.4s cubic-bezier(0.16, 1, 0.3, 1); padding: 2.5rem 1.5rem;
-    overflow-y: auto;
+    z-index: 300; transition: right 0.4s cubic-bezier(0.16, 1, 0.3, 1); padding: 2.5rem 1.8rem;
+    overflow-y: auto; box-shadow: -10px 0 30px rgba(0,0,0,0.5);
   }
   #sidebar.open { right: 0; }
+  .close-panel { color: var(--primary); background: none; border: 1px solid var(--primary); padding: 6px 12px; cursor: pointer; font-size: 0.7rem; font-family: 'Space Mono'; }
 
   #loader {
     position: absolute; inset: 0; display: flex; flex-direction: column;
     justify-content: center; align-items: center; z-index: 1000; background: var(--bg);
   }
+  .progress-bg { width: 250px; height: 1px; background: rgba(0,242,255,0.1); margin-top: 20px; }
+  #progress-bar { width: 0%; height: 100%; background: var(--primary); transition: width 0.4s; box-shadow: 0 0 10px var(--primary); }
 </style>
 </head>
 <body>
 
 <div id="loader">
-  <div style="font-family: 'Syne', sans-serif; color: var(--primary); letter-spacing: 2px; font-weight: 800;">SINCRO: MEMORY_ENTRIES</div>
-  <div style="width: 200px; height: 1px; background: rgba(0,242,255,0.2); margin-top: 15px;">
-    <div id="progress" style="width: 0%; height: 100%; background: var(--primary); transition: width 0.3s;"></div>
-  </div>
+  <div style="font-family: 'Syne', sans-serif; color: var(--primary); letter-spacing: 3px; font-weight: 800; font-size: 0.9rem;">SINCRO: FILTRANDO IS_SUPERSEDED</div>
+  <div class="progress-bg"><div id="progress-bar"></div></div>
 </div>
 
 <div id="ui-top">
   <div class="title-group">
-    <h1>Pensamiento Coral <span id="entry-counter">0 ENTRADAS</span></h1>
-    <div style="font-size: 0.6rem; color: #00ff00; margin-top: 4px; letter-spacing: 1px;">● LIVE STREAM: DATA SINCRO OK</div>
+    <h1>Pensamiento Coral <span id="entry-counter">0 ACTIVAS</span></h1>
+    <div style="font-size: 0.6rem; color: #00ff00; margin-top: 5px; letter-spacing: 1px; font-weight: bold;">● MODO: SOLO REGISTROS VIGENTES</div>
   </div>
 </div>
 
 <div id="analytics-panel">
-  <div class="panel-trigger" onclick="togglePanel()">📊 ESTADÍSTICAS Y CRONOLOGÍA (CLIC PARA DESPLEGAR)</div>
+  <div class="panel-trigger" onclick="togglePanel()">📊 ANALÍTICA DE DATOS VIGENTES (ABRIR/CERRAR)</div>
   <div class="tabs">
     <button class="tab-btn active" onclick="switchChart('timeline', event)">CRONOLOGÍA</button>
     <button class="tab-btn" onclick="switchChart('importance', event)">CONFIANZA</button>
@@ -118,11 +119,11 @@
 </div>
 
 <aside id="sidebar">
-  <button style="color: var(--primary); background: none; border: 1px solid var(--primary); padding: 5px 10px; cursor: pointer; font-size: 0.7rem;" onclick="closeSidebar()">✕ CERRAR PANEL</button>
-  <div id="sb-type" style="margin-top: 2rem; color: var(--accent); font-size: 0.7rem; letter-spacing: 2px; font-weight: bold;"></div>
-  <h2 id="sb-title" style="font-family: 'Syne'; font-size: 1.6rem; line-height: 1.1; margin: 1rem 0;"></h2>
-  <div id="sb-content" style="font-size: 0.9rem; line-height: 1.7; opacity: 0.9; color: #cbd5e1; white-space: pre-wrap;"></div>
-  <div id="sb-meta" style="margin-top: 2rem; padding-top: 1rem; border-top: 1px solid rgba(255,255,255,0.1); font-size: 0.75rem; color: var(--text-dim);"></div>
+  <button class="close-panel" onclick="closeSidebar()">✕ CERRAR NODO</button>
+  <div id="sb-type" style="margin-top: 2.5rem; color: var(--accent); font-size: 0.7rem; letter-spacing: 2px; font-weight: bold; text-transform: uppercase;"></div>
+  <h2 id="sb-title" style="font-family: 'Syne'; font-size: 1.7rem; line-height: 1.1; margin: 1.2rem 0; color: white;"></h2>
+  <div id="sb-content" style="font-size: 0.95rem; line-height: 1.8; color: #cbd5e1; white-space: pre-wrap; font-family: 'Space Mono'; font-weight: 300;"></div>
+  <div id="sb-meta" style="margin-top: 2.5rem; padding-top: 1.5rem; border-top: 1px solid rgba(255,255,255,0.1); font-size: 0.75rem; color: var(--text-dim); line-height: 2;"></div>
 </aside>
 
 <canvas id="canvas"></canvas>
@@ -131,7 +132,9 @@
 /** CONFIGURACIÓN **/
 const SUPABASE_URL = 'https://jdbzjapshomatwyasmig.supabase.co'; 
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpkYnpqYXBzaG9tYXR3eWFzbWlnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4ODAzNzMsImV4cCI6MjA3OTQ1NjM3M30.AmHDH1dmJ3qme8VYN1EU3zjf7zZAKESal5NXWhX-KMk';
-const API_URL = `${SUPABASE_URL}/rest/v1/memory_entries?select=*&order=created_at.asc`;
+
+// FILTRO CRÍTICO: is_superseded=eq.false (Solo registros vigentes)
+const API_URL = `${SUPABASE_URL}/rest/v1/memory_entries?select=*&is_superseded=eq.false&order=created_at.asc`;
 
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
@@ -140,37 +143,36 @@ let camX = 0, camY = 0, camScale = 0.7;
 let currentChart = null;
 let rawDataCache = [];
 
-// CARGA DE DATOS SIN LÍMITE DE 1000
+// CARGA DE DATOS FILTRADOS
 async function loadData() {
-    const progress = document.getElementById('progress');
+    const progress = document.getElementById('progress-bar');
     try {
-        progress.style.width = '40%';
+        progress.style.width = '30%';
         const response = await fetch(API_URL, {
             headers: { 
                 'apikey': SUPABASE_ANON_KEY, 
                 'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-                'Prefer': 'count=exact' // Pedimos el conteo real
+                'Prefer': 'count=exact' 
             }
         });
         
         const data = await response.json();
         
-        // CORRECCIÓN: Filtrar duplicados por ID para asegurar precisión
-        const uniqueEntries = Array.from(new Map(data.map(item => [item.id, item])).values());
-        rawDataCache = uniqueEntries;
+        // Limpiar duplicados accidentales por ID
+        rawDataCache = Array.from(new Map(data.map(item => [item.id, item])).values());
         
-        document.getElementById('entry-counter').innerText = `${uniqueEntries.length} ENTRADAS`;
+        document.getElementById('entry-counter').innerText = `${rawDataCache.length} ACTIVAS`;
         progress.style.width = '100%';
 
-        nodes = uniqueEntries.map((d, i) => ({
+        nodes = rawDataCache.map((d, i) => ({
             ...d,
-            x: (Math.random() - 0.5) * 1000,
-            y: (Math.random() - 0.5) * 1000,
+            x: (Math.random() - 0.5) * 1200,
+            y: (Math.random() - 0.5) * 1200,
             vx: 0, vy: 0,
             label: d.field_key || "Entrada"
         }));
 
-        // Crear hilos visuales entre entradas
+        // Hilos visuales
         for(let i=0; i<nodes.length-1; i++) {
             links.push({ source: nodes[i], target: nodes[i+1] });
         }
@@ -179,23 +181,20 @@ async function loadData() {
             document.getElementById('loader').style.display = 'none';
             initCharts();
             initSimulation();
-        }, 500);
+        }, 600);
     } catch (e) { 
-        console.error(e); 
-        document.getElementById('loader').innerHTML = "<div style='color:red'>ERROR DE CONEXIÓN CON SUPABASE</div>";
+        console.error("Error en carga:", e);
+        document.getElementById('loader').innerHTML = "<div style='color:red; font-family:Syne;'>ERROR DE CONEXIÓN: VERIFICA CLAVES</div>";
     }
 }
 
-// PANEL DE GRÁFICOS
+// GESTIÓN DE PANEL DE GRÁFICOS
 function togglePanel() { document.getElementById('analytics-panel').classList.toggle('open'); }
 
-function initCharts() {
-    switchChart('timeline');
-}
+function initCharts() { switchChart('timeline'); }
 
 function switchChart(type, event) {
     if (currentChart) currentChart.destroy();
-    
     if (event) {
         document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
         event.target.classList.add('active');
@@ -203,8 +202,8 @@ function switchChart(type, event) {
 
     const ctxChart = document.getElementById('mainChart').getContext('2d');
     const commonScales = {
-        y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8', font: { size: 10 } } },
-        x: { grid: { display: false }, ticks: { color: '#94a3b8', font: { size: 10 } } }
+        y: { grid: { color: 'rgba(255,255,255,0.03)' }, ticks: { color: '#94a3b8', font: { family: 'Space Mono', size: 9 } } },
+        x: { grid: { display: false }, ticks: { color: '#94a3b8', font: { family: 'Space Mono', size: 9 } } }
     };
 
     let config = {};
@@ -220,12 +219,10 @@ function switchChart(type, event) {
             data: {
                 labels: Object.keys(groups),
                 datasets: [{ 
-                    label: 'Registros', 
                     data: Object.values(groups), 
                     borderColor: '#00f2ff', 
-                    backgroundColor: 'rgba(0,242,255,0.1)',
-                    fill: true,
-                    tension: 0.4
+                    backgroundColor: 'rgba(0,242,255,0.05)',
+                    fill: true, pointRadius: 4, pointBackgroundColor: '#00f2ff', tension: 0.3
                 }]
             },
             options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: commonScales }
@@ -239,8 +236,8 @@ function switchChart(type, event) {
         config = {
             type: 'bar',
             data: {
-                labels: ['Baja (<0.5)', 'Media (0.5-0.8)', 'Alta (>0.8)'],
-                datasets: [{ data: counts, backgroundColor: ['#ff007a', '#7000ff', '#00f2ff'] }]
+                labels: ['BAJA (<0.5)', 'MEDIA (0.5-0.8)', 'ALTA (>0.8)'],
+                datasets: [{ data: counts, backgroundColor: ['#ff007a', '#7000ff', '#00f2ff'], borderRadius: 4 }]
             },
             options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: commonScales }
         };
@@ -253,20 +250,24 @@ function switchChart(type, event) {
             type: 'doughnut',
             data: {
                 labels: Object.keys(auths),
-                datasets: [{ data: Object.values(auths), backgroundColor: ['#00f2ff', '#7000ff', '#ff007a', '#00ffaa', '#ffaa00'] }]
+                datasets: [{ 
+                    data: Object.values(auths), 
+                    backgroundColor: ['#00f2ff', '#7000ff', '#ff007a', '#00ffaa', '#ffaa00'],
+                    borderWidth: 0,
+                    hoverOffset: 10
+                }]
             },
-            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: '#fff', font: { size: 10 } } } } }
+            options: { 
+                responsive: true, maintainAspectRatio: false, 
+                plugins: { legend: { position: 'right', labels: { color: '#fff', font: { family: 'Space Mono', size: 10 } } } }
+            }
         };
     }
-
     currentChart = new Chart(ctxChart, config);
 }
 
-// MOTOR FÍSICO Y ZOOM
-function initSimulation() {
-    resize();
-    animate();
-}
+// MOTOR FÍSICO
+function initSimulation() { resize(); animate(); }
 
 function animate() {
     ctx.clearRect(0, 0, width, height);
@@ -274,35 +275,33 @@ function animate() {
     ctx.translate(width/2 + camX, height/2 + camY);
     ctx.scale(camScale, camScale);
 
-    // Física
     nodes.forEach(n => {
         nodes.forEach(o => {
             if (n === o) return;
             const dx = n.x - o.x, dy = n.y - o.y;
             const d = Math.sqrt(dx*dx + dy*dy) || 1;
-            if (d < 120) { n.vx += dx/d * 0.3; n.vy += dy/d * 0.3; }
+            if (d < 130) { n.vx += dx/d * 0.4; n.vy += dy/d * 0.4; }
         });
-        n.vx -= n.x * 0.005; n.vy -= n.y * 0.005;
-        n.vx *= 0.88; n.vy *= 0.88;
+        n.vx -= n.x * 0.008; n.vy -= n.y * 0.008;
+        n.vx *= 0.85; n.vy *= 0.85;
         n.x += n.vx; n.y += n.vy;
 
-        // Dibujar Nodo
-        const isSel = n === nodes.find(found => found.id === (window.selectedId || ''));
-        ctx.shadowBlur = isSel ? 15 : 0;
+        // Dibujo
+        const isSel = n === nodes.find(f => f.id === (window.selectedId || ''));
+        ctx.shadowBlur = isSel ? 20 : 0;
         ctx.shadowColor = varColor('--primary');
-        ctx.fillStyle = n.confidence_score > 0.8 ? varColor('--primary') : varColor('--secondary');
-        ctx.beginPath(); ctx.arc(n.x, n.y, isSel ? 8 : 4, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = isSel ? 'white' : (n.confidence_score > 0.8 ? varColor('--primary') : varColor('--secondary'));
+        ctx.beginPath(); ctx.arc(n.x, n.y, isSel ? 9 : 4.5, 0, Math.PI*2); ctx.fill();
         ctx.shadowBlur = 0;
 
         if (camScale > 0.5 || isSel) {
             ctx.fillStyle = isSel ? '#fff' : 'rgba(255,255,255,0.4)';
             ctx.font = `${isSel ? 'bold' : ''} 10px Space Mono`;
-            ctx.fillText(n.label.toUpperCase(), n.x + 12, n.y + 3);
+            ctx.fillText(n.label.toUpperCase(), n.x + 15, n.y + 4);
         }
     });
 
-    // Enlaces
-    ctx.strokeStyle = 'rgba(0, 242, 255, 0.05)';
+    ctx.strokeStyle = 'rgba(0, 242, 255, 0.04)';
     ctx.beginPath();
     links.forEach(l => { ctx.moveTo(l.source.x, l.source.y); ctx.lineTo(l.target.x, l.target.y); });
     ctx.stroke();
@@ -321,8 +320,7 @@ function resize() {
 
 // INTERACCIÓN
 canvas.addEventListener('wheel', e => {
-    const delta = e.deltaY > 0 ? 0.9 : 1.1;
-    camScale = Math.max(0.1, Math.min(5, camScale * delta));
+    camScale = Math.max(0.1, Math.min(5, camScale * (e.deltaY > 0 ? 0.9 : 1.1)));
 }, { passive: true });
 
 let isDragging = false, lastMouse = null;
@@ -330,8 +328,7 @@ canvas.addEventListener('mousedown', e => { isDragging = true; lastMouse = { x: 
 window.addEventListener('mouseup', () => isDragging = false);
 window.addEventListener('mousemove', e => {
     if (isDragging) {
-        camX += (e.clientX - lastMouse.x);
-        camY += (e.clientY - lastMouse.y);
+        camX += (e.clientX - lastMouse.x); camY += (e.clientY - lastMouse.y);
         lastMouse = { x: e.clientX, y: e.clientY };
     }
 });
@@ -339,24 +336,20 @@ window.addEventListener('mousemove', e => {
 canvas.addEventListener('click', e => {
     const mx = (e.clientX - width/2 - camX) / camScale;
     const my = (e.clientY - height/2 - camY) / camScale;
-    const found = nodes.find(n => Math.hypot(n.x - mx, n.y - my) < 20);
-    if (found) {
-        window.selectedId = found.id;
-        openSidebar(found);
-    } else {
-        window.selectedId = null;
-        closeSidebar();
-    }
+    const found = nodes.find(n => Math.hypot(n.x - mx, n.y - my) < 25);
+    if (found) { window.selectedId = found.id; openSidebar(found); }
+    else { window.selectedId = null; closeSidebar(); }
 });
 
 function openSidebar(n) {
-    document.getElementById('sb-type').innerText = n.entry_type?.toUpperCase() || 'INSIGHT';
+    document.getElementById('sb-type').innerText = n.entry_type || 'INSIGHT';
     document.getElementById('sb-title').innerText = n.field_key;
     document.getElementById('sb-content').innerText = n.field_value;
     document.getElementById('sb-meta').innerHTML = `
-        AUTOR: ${n.ia_author.toUpperCase()}<br>
+        ID ORIGEN: ${n.id.toString().substring(0,8)}...<br>
+        IA AGENTE: ${n.ia_author.toUpperCase()}<br>
         CONFIANZA: ${(n.confidence_score * 100).toFixed(1)}%<br>
-        REGISTRO: ${new Date(n.created_at).toLocaleString()}
+        REGISTRO: ${new Date(n.created_at).toLocaleString('es-ES')}
     `;
     document.getElementById('sidebar').classList.add('open');
 }
