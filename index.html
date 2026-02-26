@@ -29,7 +29,7 @@
   canvas { display: block; cursor: grab; }
   canvas:active { cursor: grabbing; }
 
-  /* Interfaz superior */
+  /* UI CABECERA */
   #ui-top {
     position: absolute; top: 0; left: 0; right: 0;
     padding: 1.5rem;
@@ -38,54 +38,80 @@
     display: flex; justify-content: space-between; align-items: flex-start;
     pointer-events: none;
   }
-  .title-group { pointer-events: auto; }
-  h1 { margin: 0; font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.5rem; letter-spacing: -1px; text-transform: uppercase; color: var(--primary); }
-  .status { font-size: 0.7rem; opacity: 0.7; display: flex; align-items: center; gap: 6px; margin-top: 4px; }
+  .title-group { 
+    pointer-events: auto; 
+    display: flex; 
+    flex-direction: column; 
+    gap: 6px;
+  }
+  .header-main {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+  }
+  h1 { margin: 0; font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.4rem; letter-spacing: -1px; text-transform: uppercase; color: var(--primary); }
+  
+  #entry-counter {
+    font-size: 0.7rem;
+    font-weight: bold;
+    color: var(--primary);
+    border: 1px solid rgba(0, 242, 255, 0.4);
+    padding: 2px 10px;
+    border-radius: 4px;
+    background: rgba(0, 242, 255, 0.1);
+    letter-spacing: 1px;
+  }
+
+  .status { font-size: 0.65rem; opacity: 0.7; display: flex; align-items: center; gap: 6px; text-transform: uppercase; letter-spacing: 1px; }
   .dot { width: 6px; height: 6px; border-radius: 50%; background: #00ff00; box-shadow: 0 0 10px #00ff00; }
 
-  /* Sidebar */
+  /* SIDEBAR */
   #sidebar {
     position: absolute; right: -400px; top: 0; bottom: 0;
     width: 350px; background: rgba(10,20,29,0.95);
     border-left: 1px solid rgba(0,242,255,0.2);
     backdrop-filter: blur(20px);
     z-index: 100; transition: right 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-    padding: 2rem; overflow-y: auto;
+    padding: 2.5rem 1.5rem; overflow-y: auto;
   }
   #sidebar.open { right: 0; }
-  .close-btn { position: absolute; top: 1rem; right: 1rem; cursor: pointer; color: var(--primary); font-size: 1.2rem; background: none; border: none; }
-  .node-type { font-size: 0.7rem; text-transform: uppercase; color: var(--accent); letter-spacing: 2px; margin-bottom: 0.5rem; }
-  .node-title { font-family: 'Syne', sans-serif; font-size: 1.8rem; line-height: 1.1; margin-bottom: 1.5rem; color: var(--text); }
-  .node-meta { font-size: 0.8rem; color: var(--text-dim); border-top: 1px solid rgba(255,255,255,0.1); padding-top: 1rem; margin-top: 1rem; }
-  .node-content { font-size: 0.95rem; line-height: 1.6; color: #cbd5e1; }
+  .close-btn { position: absolute; top: 1rem; right: 1rem; cursor: pointer; color: var(--primary); font-size: 1.5rem; background: none; border: none; }
+  .node-type { font-size: 0.7rem; text-transform: uppercase; color: var(--accent); letter-spacing: 2px; margin-bottom: 0.5rem; font-weight: bold; }
+  .node-title { font-family: 'Syne', sans-serif; font-size: 1.6rem; line-height: 1.1; margin-bottom: 1.5rem; color: var(--text); font-weight: 800; }
+  .node-content { font-size: 0.9rem; line-height: 1.7; color: #cbd5e1; white-space: pre-wrap; }
+  .node-meta { font-size: 0.75rem; color: var(--text-dim); border-top: 1px solid rgba(255,255,255,0.1); padding-top: 1.5rem; margin-top: 1.5rem; line-height: 1.8; }
 
+  /* LOADER */
   #loader {
     position: absolute; inset: 0; display: flex; flex-direction: column;
     justify-content: center; align-items: center; z-index: 1000; background: var(--bg);
   }
   .loading-bar { width: 200px; height: 2px; background: rgba(0,242,255,0.1); margin-top: 1rem; overflow: hidden; }
-  .loading-progress { width: 0%; height: 100%; background: var(--primary); transition: width 0.3s; }
+  .loading-progress { width: 0%; height: 100%; background: var(--primary); transition: width 0.4s; }
 </style>
 </head>
 <body>
 
 <div id="loader">
-  <div style="font-family: 'Syne', sans-serif; font-weight: 800; color: var(--primary);">CONECTANDO A MEMORIA CORAL...</div>
+  <div style="font-family: 'Syne', sans-serif; font-weight: 800; color: var(--primary); letter-spacing: 2px;">SINCRO: MEMORY_ENTRIES</div>
   <div class="loading-bar"><div id="progress" class="loading-progress"></div></div>
 </div>
 
 <div id="ui-top">
   <div class="title-group">
-    <h1>Pensamiento Coral</h1>
-    <div class="status"><span class="dot" id="status-dot"></span> <span id="status-text">Sincronizado con Supabase (memory_entries)</span></div>
+    <div class="header-main">
+        <h1>Pensamiento Coral</h1>
+        <span id="entry-counter">0 ENTRADAS</span>
+    </div>
+    <div class="status"><span class="dot" id="status-dot"></span> <span id="status-text">Memoria Persistente Activa</span></div>
   </div>
 </div>
 
 <aside id="sidebar">
   <button class="close-btn" onclick="closeSidebar()">×</button>
   <div id="sb-type" class="node-type">---</div>
-  <h2 id="sb-title" class="node-title">Selecciona un nodo</h2>
-  <div id="sb-content" class="node-content">Haz clic en un pensamiento para explorar su conexión...</div>
+  <h2 id="sb-title" class="node-title">Selección de Nodo</h2>
+  <div id="sb-content" class="node-content">Explora las conexiones del sistema...</div>
   <div id="sb-meta" class="node-meta"></div>
 </aside>
 
@@ -93,29 +119,27 @@
 
 <script>
 /**
- * CONFIGURACIÓN DE SUPABASE
- * Sustituye estos valores con los de tu proyecto
+ * CONFIGURACIÓN DE CONEXIÓN
  */
 const SUPABASE_URL = 'https://jdbzjapshomatwyasmig.supabase.co'; 
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpkYnpqYXBzaG9tYXR3eWFzbWlnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4ODAzNzMsImV4cCI6MjA3OTQ1NjM3M30.AmHDH1dmJ3qme8VYN1EU3zjf7zZAKESal5NXWhX-KMk';
-// URL para acceder directamente a la tabla memory_entries
-const API_URL = `${SUPABASE_URL}/rest/v1/memory_entries?select=*`;
+
+// Consulta directa a la tabla memory_entries ordenando por creación
+const API_URL = `${SUPABASE_URL}/rest/v1/memory_entries?select=*&order=created_at.desc`;
 
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
 let width, height;
 let nodes = [], links = [];
-let camX = 0, camY = 0, camScale = 1;
+let camX = 0, camY = 0;
+let camScale = 0.7; 
 let selectedNode = null;
 let hoveredNode = null;
-
-// --- CARGA DE DATOS ---
 
 async function loadData() {
     const progress = document.getElementById('progress');
     try {
         progress.style.width = '30%';
-        
         const response = await fetch(API_URL, {
             method: 'GET',
             headers: {
@@ -125,49 +149,46 @@ async function loadData() {
             }
         });
 
-        if (!response.ok) {
-            const errJson = await response.json();
-            throw new Error(errJson.message || `Error HTTP ${response.status}`);
-        }
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
         const rawData = await response.json();
-        progress.style.width = '70%';
+        progress.style.width = '100%';
 
-        // TRANSFORMACIÓN: Adaptamos tus campos de memory_entries a lo que el grafo necesita
+        // Actualizar contador en la cabecera
+        document.getElementById('entry-counter').innerText = `${rawData.length} ENTRADAS`;
+
+        // Procesar los datos de tu tabla memory_entries
         nodes = rawData.map((item, index) => ({
             id: item.id || index,
-            label: item.field_key || "Sin título",   // Usamos field_key como nombre del nodo
-            content: item.field_value || "",         // Usamos field_value como el texto
+            label: item.field_key || "Entrada sin título", // Título del nodo
+            content: item.field_value || "Sin descripción disponible.", // Texto largo
             type: item.entry_type || "insight",
-            author: item.ia_author || "desconocido",
+            author: item.ia_author || "system",
             score: item.confidence_score || 1,
-            // Posición inicial aleatoria
-            x: (Math.random() - 0.5) * 1000,
-            y: (Math.random() - 0.5) * 1000,
+            date: item.created_at,
+            // Distribución inicial circular compacta
+            x: Math.cos(index) * (index * 15),
+            y: Math.sin(index) * (index * 15),
             vx: 0, vy: 0
         }));
 
-        // Generar enlaces automáticos por tipo o autor (si no tienes tabla de links)
-        nodes.forEach((n, i) => {
-            if (i > 0) {
-                // Conectamos cada nodo con el anterior para crear una red básica
-                // En el futuro puedes conectar por parent_entry_id si lo usas
-                links.push({ source: nodes[i-1], target: n });
-            }
-        });
+        // Crear enlaces visuales entre entradas consecutivas (historia de la memoria)
+        for(let i=0; i < nodes.length - 1; i++) {
+            links.push({ source: nodes[i], target: nodes[i+1] });
+        }
 
-        document.getElementById('loader').style.display = 'none';
-        initSimulation();
+        setTimeout(() => {
+            document.getElementById('loader').style.display = 'none';
+            initSimulation();
+        }, 600);
 
     } catch (err) {
-        console.error("Error crítico:", err);
-        document.getElementById('status-dot').style.background = 'red';
-        document.getElementById('status-text').innerText = "Fallo de conexión: " + err.message;
-        alert("Error al conectar con Supabase. Revisa la consola (F12) y tus credenciales.");
+        console.error("Error en carga:", err);
+        document.getElementById('status-dot').style.background = '#ff0055';
+        document.getElementById('status-text').innerText = "Error de sincronización";
+        alert("No se pudo conectar con memory_entries. Revisa el RLS en Supabase.");
     }
 }
-
-// --- MOTOR DEL GRAFO (Física simplificada) ---
 
 function initSimulation() {
     resize();
@@ -180,24 +201,29 @@ function animate() {
     ctx.translate(width/2 + camX, height/2 + camY);
     ctx.scale(camScale, camScale);
 
-    // Física básica de repulsión
+    // Motor físico suave y compacto
     nodes.forEach(n => {
         nodes.forEach(other => {
             if (n === other) return;
             const dx = n.x - other.x;
             const dy = n.y - other.y;
             const dist = Math.sqrt(dx*dx + dy*dy) || 1;
-            if (dist < 200) {
-                n.vx += dx/dist * 0.5;
-                n.vy += dy/dist * 0.5;
+            if (dist < 100) { // Radio de colisión reducido
+                n.vx += dx/dist * 0.3;
+                n.vy += dy/dist * 0.3;
             }
         });
+        // Gravedad central para evitar que los nodos floten al infinito
+        n.vx -= n.x * 0.005;
+        n.vy -= n.y * 0.005;
+
         n.vx *= 0.9; n.vy *= 0.9;
         n.x += n.vx; n.y += n.vy;
     });
 
-    // Dibujar enlaces
-    ctx.strokeStyle = "rgba(0, 242, 255, 0.1)";
+    // Dibujar Enlaces (Conexiones)
+    ctx.strokeStyle = "rgba(0, 242, 255, 0.06)";
+    ctx.lineWidth = 1;
     ctx.beginPath();
     links.forEach(l => {
         ctx.moveTo(l.source.x, l.source.y);
@@ -205,26 +231,33 @@ function animate() {
     });
     ctx.stroke();
 
-    // Dibujar nodos
+    // Dibujar Nodos
     nodes.forEach(n => {
-        const isHovered = n === hoveredNode || n === selectedNode;
-        ctx.fillStyle = isHovered ? varColor('--primary') : varColor('--secondary');
+        const isSelected = n === selectedNode;
+        const isHovered = n === hoveredNode;
+        
+        ctx.fillStyle = isSelected ? varColor('--primary') : varColor('--secondary');
+        if (isSelected) {
+            ctx.shadowBlur = 20;
+            ctx.shadowColor = varColor('--primary');
+        }
+        
         ctx.beginPath();
-        ctx.arc(n.x, n.y, isHovered ? 8 : 4, 0, Math.PI*2);
+        ctx.arc(n.x, n.y, isSelected ? 8 : 4, 0, Math.PI*2);
         ctx.fill();
+        ctx.shadowBlur = 0;
 
-        if (isHovered || camScale > 0.8) {
-            ctx.fillStyle = "white";
-            ctx.font = "10px 'Space Mono'";
-            ctx.fillText(n.label, n.x + 12, n.y + 4);
+        // Etiquetas (solo si hay zoom o está seleccionado)
+        if (camScale > 0.4 || isSelected) {
+            ctx.fillStyle = isSelected ? "#fff" : "rgba(255,255,255,0.5)";
+            ctx.font = `${isSelected ? 'bold' : ''} 10px 'Space Mono'`;
+            ctx.fillText(n.label.toUpperCase(), n.x + 12, n.y + 3);
         }
     });
 
     ctx.restore();
     requestAnimationFrame(animate);
 }
-
-// --- INTERACCIÓN ---
 
 function varColor(name) {
     return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
@@ -242,10 +275,15 @@ function openSidebar(n) {
     document.getElementById('sb-type').innerText = n.type;
     document.getElementById('sb-title').innerText = n.label;
     document.getElementById('sb-content').innerText = n.content;
+    
+    const fechaStr = new Date(n.date).toLocaleString('es-ES', { 
+        day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' 
+    });
+
     document.getElementById('sb-meta').innerHTML = `
-        Autor: ${n.author.toUpperCase()}<br>
-        Confianza: ${(n.score * 100).toFixed(1)}%<br>
-        ID: ${n.id.toString().substring(0,8)}...
+        ORIGEN IA: ${n.author.toUpperCase()}<br>
+        CONFIANZA: ${(n.score * 100).toFixed(0)}%<br>
+        REGISTRO: ${fechaStr}
     `;
     document.getElementById('sidebar').classList.add('open');
 }
@@ -255,15 +293,40 @@ function closeSidebar() {
     selectedNode = null;
 }
 
+// Interacción de clic
 canvas.addEventListener('click', e => {
     const rect = canvas.getBoundingClientRect();
     const mx = (e.clientX - rect.left - width/2 - camX) / camScale;
     const my = (e.clientY - rect.top - height/2 - camY) / camScale;
     
-    selectedNode = nodes.find(n => Math.hypot(n.x - mx, n.y - my) < 20);
-    if (selectedNode) openSidebar(selectedNode);
-    else closeSidebar();
+    const clicked = nodes.find(n => Math.hypot(n.x - mx, n.y - my) < 15);
+    if (clicked) {
+        selectedNode = clicked;
+        openSidebar(clicked);
+    } else {
+        closeSidebar();
+    }
 });
+
+// Soporte para arrastrar la cámara
+let isDragging = false;
+let lastMouse = { x: 0, y: 0 };
+
+canvas.addEventListener('mousedown', e => { isDragging = true; lastMouse = { x: e.clientX, y: e.clientY }; });
+window.addEventListener('mouseup', () => isDragging = false);
+window.addEventListener('mousemove', e => {
+    if (isDragging) {
+        camX += (e.clientX - lastMouse.x);
+        camY += (e.clientY - lastMouse.y);
+        lastMouse = { x: e.clientX, y: e.clientY };
+    }
+});
+
+// Zoom con rueda
+window.addEventListener('wheel', e => {
+    const delta = e.deltaY > 0 ? 0.9 : 1.1;
+    camScale = Math.max(0.1, Math.min(3, camScale * delta));
+}, { passive: true });
 
 window.addEventListener('resize', resize);
 loadData();
