@@ -1,0 +1,1286 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Memoria Coral — Grafo de Pensamiento V4</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@400;600;800&display=swap');
+
+:root {
+  --bg:        #030c14;
+  --surface:   #071828;
+  --surface2:  #0b2035;
+  --cyan:      #00eeff;
+  --gold:      #ffc84a;
+  --violet:    #a855f7;
+  --blue:      #3b82f6;
+  --red:       #ff4d5e;
+  --green:     #00ffb2;
+  --text:      #dff4f8;
+  --text-dim:  #6a90a8;
+  --border:    rgba(0,238,255,0.12);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  width: 100%; height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Space Mono', monospace;
+  overflow: hidden;
+}
+
+/* ─── SCROLLBAR ─── */
+::-webkit-scrollbar { width: 3px; }
+::-webkit-scrollbar-thumb { background: rgba(0,238,255,0.2); border-radius: 2px; }
+
+/* ─── CANVAS ─── */
+#canvas {
+  position: fixed; inset: 0;
+  display: block; cursor: grab;
+}
+#canvas:active { cursor: grabbing; }
+
+/* ─── SCAN LINES ─── */
+body::after {
+  content: '';
+  position: fixed; inset: 0; z-index: 3; pointer-events: none;
+  background: repeating-linear-gradient(
+    0deg, transparent, transparent 3px,
+    rgba(0,0,0,0.06) 3px, rgba(0,0,0,0.06) 4px
+  );
+}
+
+/* ─── LOADER ─── */
+#loader {
+  position: fixed; inset: 0; z-index: 2000;
+  background: var(--bg);
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 24px;
+}
+.loader-icon {
+  width: 80px; height: 80px;
+  position: relative; display: flex; align-items: center; justify-content: center;
+}
+.loader-ring {
+  position: absolute; border-radius: 50%;
+  border: 1px solid transparent;
+  animation: spin 2s linear infinite;
+}
+.loader-ring:nth-child(1) {
+  width: 80px; height: 80px;
+  border-top-color: var(--cyan);
+  border-right-color: rgba(0,238,255,0.2);
+  animation-duration: 1.8s;
+}
+.loader-ring:nth-child(2) {
+  width: 56px; height: 56px;
+  border-top-color: var(--gold);
+  border-left-color: rgba(255,200,74,0.2);
+  animation-duration: 1.3s; animation-direction: reverse;
+}
+.loader-ring:nth-child(3) {
+  width: 32px; height: 32px;
+  border-top-color: var(--violet);
+  animation-duration: 0.9s;
+}
+.loader-core {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--cyan);
+  box-shadow: 0 0 12px var(--cyan), 0 0 30px var(--cyan);
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.loader-text {
+  font-family: 'Syne', sans-serif; font-size: 0.85rem;
+  color: var(--cyan); letter-spacing: 4px; font-weight: 800;
+  text-transform: uppercase;
+}
+.loader-sub { font-size: 0.6rem; color: var(--text-dim); letter-spacing: 2px; }
+.progress-track {
+  width: 220px; height: 1px;
+  background: rgba(0,238,255,0.1);
+  position: relative; overflow: hidden;
+}
+#progress-bar {
+  height: 100%; width: 0%;
+  background: linear-gradient(90deg, transparent, var(--cyan));
+  transition: width 0.5s ease;
+  box-shadow: 0 0 8px var(--cyan);
+}
+
+/* ─── TOP BAR ─── */
+#topbar {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+  height: 60px;
+  background: linear-gradient(180deg, rgba(3,12,20,0.98) 0%, transparent 100%);
+  display: flex; align-items: center;
+  padding: 0 1.4rem; gap: 14px;
+  pointer-events: none;
+}
+#topbar > * { pointer-events: auto; }
+
+.brand {
+  display: flex; align-items: center; gap: 10px;
+  text-decoration: none; color: inherit;
+}
+.brand-icon {
+  width: 34px; height: 34px;
+  position: relative; display: flex; align-items: center; justify-content: center;
+}
+.brand-icon svg { width: 34px; height: 34px; }
+.brand-name {
+  font-family: 'Syne', sans-serif; font-weight: 800;
+  font-size: 1rem; text-transform: uppercase;
+  letter-spacing: 2px; color: var(--cyan);
+  text-shadow: 0 0 18px rgba(0,238,255,0.5);
+  line-height: 1;
+}
+.brand-sub {
+  font-size: 0.55rem; color: var(--text-dim);
+  letter-spacing: 1.5px; margin-top: 2px;
+}
+
+.spacer { flex: 1; }
+
+.top-badge {
+  display: flex; align-items: center; gap: 6px;
+  padding: 5px 12px;
+  border: 1px solid rgba(0,255,178,0.25);
+  border-radius: 20px;
+  background: rgba(0,255,178,0.06);
+  font-size: 0.6rem; color: var(--green);
+  letter-spacing: 1px; font-weight: bold;
+}
+.pulse-dot {
+  width: 5px; height: 5px; border-radius: 50%;
+  background: var(--green);
+  animation: pulse-dot 1.6s ease-in-out infinite;
+}
+@keyframes pulse-dot {
+  0%,100% { opacity:1; transform:scale(1); }
+  50% { opacity:0.3; transform:scale(0.6); }
+}
+
+#entry-counter {
+  font-size: 0.65rem; padding: 5px 14px;
+  border: 1px solid rgba(0,238,255,0.25);
+  border-radius: 20px;
+  background: rgba(0,238,255,0.07);
+  color: var(--cyan); font-weight: bold; letter-spacing: 1px;
+}
+
+.icon-btn {
+  width: 34px; height: 34px; border-radius: 8px;
+  border: 1px solid var(--border); background: none;
+  color: var(--text-dim); cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.9rem; transition: all 0.2s;
+  text-decoration: none;
+}
+.icon-btn:hover {
+  border-color: var(--cyan); color: var(--cyan);
+  background: rgba(0,238,255,0.08);
+  box-shadow: 0 0 12px rgba(0,238,255,0.2);
+}
+.icon-btn.active {
+  border-color: var(--cyan); color: var(--cyan);
+  background: rgba(0,238,255,0.12);
+}
+
+/* ─── TOOLTIP ─── */
+.btn-tooltip {
+  position: relative;
+}
+.btn-tooltip::after {
+  content: attr(data-tip);
+  position: absolute; top: calc(100% + 6px); left: 50%;
+  transform: translateX(-50%);
+  background: var(--surface2); color: var(--text);
+  font-size: 0.6rem; white-space: nowrap; padding: 4px 10px;
+  border: 1px solid var(--border); border-radius: 4px;
+  opacity: 0; pointer-events: none; transition: opacity 0.15s;
+  letter-spacing: 1px;
+}
+.btn-tooltip:hover::after { opacity: 1; }
+
+/* ─── ÍNDICE PANEL (IZQUIERDA) ─── */
+#index-panel {
+  position: fixed; left: 0; top: 0; bottom: 0;
+  width: 370px;
+  background: rgba(5,14,26,0.97);
+  border-right: 1px solid var(--border);
+  backdrop-filter: blur(20px);
+  z-index: 400;
+  display: flex; flex-direction: column;
+  transform: translateX(-380px);
+  transition: transform 0.4s cubic-bezier(0.16,1,0.3,1);
+  box-shadow: 8px 0 40px rgba(0,0,0,0.6);
+}
+#index-panel.open { transform: translateX(0); }
+
+.idx-header {
+  padding: 1rem 1.2rem 0.8rem;
+  border-bottom: 1px solid var(--border);
+  background: rgba(0,238,255,0.03);
+  flex-shrink: 0;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.idx-header h3 {
+  font-family: 'Syne'; font-size: 0.8rem;
+  color: var(--cyan); letter-spacing: 2px; text-transform: uppercase;
+}
+.close-btn {
+  background: none; border: 1px solid var(--border);
+  color: var(--text-dim); width: 26px; height: 26px;
+  border-radius: 4px; cursor: pointer; font-size: 0.75rem;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.2s;
+}
+.close-btn:hover { border-color: var(--red); color: var(--red); }
+
+/* Stats rápidas */
+.idx-stats {
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  gap: 6px; padding: 0.8rem 1.2rem;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  flex-shrink: 0;
+}
+.stat-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px; padding: 8px;
+  text-align: center;
+}
+.stat-val {
+  font-family: 'Syne'; font-size: 1.2rem; font-weight: 800;
+  line-height: 1;
+}
+.stat-lbl {
+  font-size: 0.52rem; color: var(--text-dim);
+  letter-spacing: 1px; margin-top: 3px;
+}
+
+/* Búsqueda */
+.idx-search {
+  padding: 0.7rem 1.2rem;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  flex-shrink: 0;
+}
+.search-wrap {
+  position: relative; display: flex; align-items: center;
+}
+.search-wrap svg {
+  position: absolute; left: 10px; width: 13px; height: 13px;
+  color: var(--text-dim); pointer-events: none;
+}
+#search-input {
+  width: 100%; background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text); padding: 8px 12px 8px 32px;
+  border-radius: 6px; font-family: 'Space Mono';
+  font-size: 0.7rem; outline: none;
+  transition: border-color 0.2s;
+}
+#search-input:focus { border-color: var(--cyan); box-shadow: 0 0 0 3px rgba(0,238,255,0.06); }
+#search-input::placeholder { color: var(--text-dim); }
+
+/* Filtros tipo */
+.idx-filters {
+  padding: 0.6rem 1.2rem;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  flex-shrink: 0;
+}
+.filter-label { font-size: 0.57rem; color: var(--text-dim); letter-spacing: 1px; margin-bottom: 6px; }
+.chips { display: flex; flex-wrap: wrap; gap: 5px; }
+.chip {
+  padding: 3px 11px; border-radius: 20px;
+  font-size: 0.6rem; cursor: pointer;
+  border: 1px solid rgba(255,255,255,0.1);
+  background: none; color: var(--text-dim);
+  font-family: 'Space Mono'; transition: all 0.15s;
+  letter-spacing: 0.5px;
+}
+.chip:hover { color: white; border-color: rgba(255,255,255,0.3); }
+.chip.active { color: white; }
+.chip[data-type="all"].active       { border-color: var(--cyan);   background: rgba(0,238,255,0.1);  color: var(--cyan); }
+.chip[data-conf="high"].active      { border-color: var(--cyan);   background: rgba(0,238,255,0.08); color: var(--cyan); }
+.chip[data-conf="mid"].active       { border-color: var(--gold);   background: rgba(255,200,74,0.08);color: var(--gold); }
+.chip[data-conf="low"].active       { border-color: var(--red);    background: rgba(255,77,94,0.08); color: var(--red); }
+
+/* Sort bar */
+.sort-bar {
+  display: flex; align-items: center; gap: 4px;
+  padding: 5px 1.2rem 6px;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  flex-shrink: 0;
+}
+.sort-lbl { font-size: 0.57rem; color: var(--text-dim); letter-spacing: 1px; margin-right: 4px; }
+.sort-btn {
+  background: none; border: none; color: var(--text-dim);
+  font-family: 'Space Mono'; font-size: 0.58rem; cursor: pointer;
+  padding: 3px 8px; border-radius: 4px; transition: all 0.15s;
+}
+.sort-btn:hover, .sort-btn.active { color: var(--cyan); background: rgba(0,238,255,0.08); }
+
+/* Lista */
+#index-list { flex: 1; overflow-y: auto; padding: 6px 0; }
+
+.entry-item {
+  padding: 10px 1.2rem; cursor: pointer;
+  border-left: 2px solid transparent;
+  transition: all 0.15s; display: flex; flex-direction: column; gap: 4px;
+}
+.entry-item:hover { background: rgba(0,238,255,0.04); border-left-color: rgba(0,238,255,0.3); }
+.entry-item.selected { background: rgba(0,238,255,0.07); border-left-color: var(--cyan); }
+
+.entry-top { display: flex; align-items: center; gap: 7px; }
+.entry-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  flex-shrink: 0;
+}
+.entry-key {
+  font-size: 0.68rem; color: var(--text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  flex: 1; font-weight: bold;
+}
+.entry-score {
+  font-size: 0.58rem; color: var(--text-dim);
+  flex-shrink: 0;
+}
+.entry-bottom {
+  display: flex; align-items: center; gap: 6px;
+  padding-left: 14px;
+}
+.entry-tag {
+  font-size: 0.55rem; padding: 1px 7px; border-radius: 3px;
+  border: 1px solid; letter-spacing: 0.5px;
+}
+.entry-date { font-size: 0.55rem; color: var(--text-dim); }
+.entry-author { font-size: 0.55rem; color: var(--text-dim); }
+
+.empty-state {
+  padding: 2rem 1.2rem; text-align: center;
+  color: var(--text-dim); font-size: 0.7rem; line-height: 2;
+}
+
+/* ─── ANALYTICS PANEL (BOTTOM) ─── */
+#analytics-panel {
+  position: fixed; bottom: 0; left: 0; right: 0;
+  height: 310px;
+  background: rgba(5,14,26,0.97);
+  border-top: 1px solid var(--border);
+  backdrop-filter: blur(20px);
+  z-index: 300;
+  transform: translateY(260px);
+  transition: transform 0.5s cubic-bezier(0.16,1,0.3,1);
+}
+#analytics-panel.open { transform: translateY(0); }
+
+.panel-handle {
+  height: 50px; display: flex; align-items: center; justify-content: center;
+  cursor: pointer; gap: 10px;
+  background: rgba(0,238,255,0.03);
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  transition: background 0.2s;
+}
+.panel-handle:hover { background: rgba(0,238,255,0.06); }
+.handle-label {
+  font-size: 0.65rem; color: var(--cyan); letter-spacing: 2px; font-weight: bold;
+}
+.handle-arrow {
+  font-size: 0.7rem; color: var(--text-dim);
+  transition: transform 0.3s;
+}
+#analytics-panel.open .handle-arrow { transform: rotate(180deg); }
+
+.tabs {
+  display: flex; gap: 8px; padding: 10px 1.5rem;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+.tab-btn {
+  background: none; border: 1px solid rgba(255,255,255,0.08);
+  color: var(--text-dim); padding: 5px 16px; cursor: pointer;
+  font-family: 'Space Mono'; font-size: 0.65rem; border-radius: 4px;
+  transition: all 0.2s; letter-spacing: 1px;
+}
+.tab-btn.active {
+  border-color: var(--cyan); color: var(--cyan);
+  background: rgba(0,238,255,0.1);
+}
+.tab-btn:hover:not(.active) { background: rgba(255,255,255,0.05); color: var(--text); }
+
+.chart-area { height: 185px; padding: 8px 24px; position: relative; }
+
+/* ─── DETALLE SIDEBAR (DERECHA) ─── */
+#sidebar {
+  position: fixed; right: -400px; top: 0; bottom: 0;
+  width: 360px;
+  background: rgba(5,14,26,0.98);
+  border-left: 1px solid var(--border);
+  backdrop-filter: blur(20px);
+  z-index: 400;
+  transition: right 0.4s cubic-bezier(0.16,1,0.3,1);
+  display: flex; flex-direction: column;
+  box-shadow: -10px 0 40px rgba(0,0,0,0.6);
+}
+#sidebar.open { right: 0; }
+
+.sb-top {
+  padding: 1.2rem 1.4rem;
+  border-bottom: 1px solid var(--border);
+  background: rgba(0,238,255,0.02);
+  display: flex; align-items: center; justify-content: space-between;
+  flex-shrink: 0;
+}
+
+/* Decoración coral en sidebar */
+.sb-coral {
+  width: 100%; height: 80px;
+  position: relative; overflow: hidden;
+  flex-shrink: 0;
+}
+#sb-coral-canvas { display: block; }
+
+.sb-body { flex: 1; overflow-y: auto; padding: 1.4rem; }
+
+#sb-type-badge {
+  display: inline-block; font-size: 0.6rem; letter-spacing: 2px;
+  padding: 3px 12px; border-radius: 3px; font-weight: bold;
+  text-transform: uppercase; margin-bottom: 1rem;
+  border: 1px solid;
+}
+#sb-title {
+  font-family: 'Syne'; font-size: 1.4rem; line-height: 1.2;
+  color: white; margin-bottom: 1.2rem;
+}
+#sb-content {
+  font-size: 0.78rem; line-height: 1.9; color: #b8cfd8;
+  white-space: pre-wrap; font-family: 'Space Mono';
+}
+
+.sb-meta-grid {
+  margin-top: 1.8rem; padding-top: 1.4rem;
+  border-top: 1px solid rgba(255,255,255,0.07);
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.meta-cell {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 6px; padding: 8px 10px;
+}
+.meta-cell .meta-k { font-size: 0.55rem; color: var(--text-dim); letter-spacing: 1px; margin-bottom: 3px; }
+.meta-cell .meta-v { font-size: 0.72rem; color: var(--text); font-weight: bold; }
+
+.confidence-bar-wrap {
+  margin-top: 1.4rem;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 6px; padding: 10px 12px;
+}
+.confidence-bar-wrap .meta-k { font-size: 0.55rem; color: var(--text-dim); letter-spacing: 1px; margin-bottom: 6px; }
+.conf-track {
+  height: 4px; background: rgba(255,255,255,0.07); border-radius: 2px; overflow: hidden;
+}
+.conf-fill {
+  height: 100%; border-radius: 2px;
+  transition: width 0.6s ease;
+}
+.conf-pct { font-size: 0.8rem; font-weight: bold; margin-top: 4px; }
+
+/* ─── MINI MAP / LEGEND ─── */
+#legend {
+  position: fixed; bottom: 60px; left: 20px; z-index: 50;
+  background: rgba(5,14,26,0.85); border: 1px solid var(--border);
+  border-radius: 8px; padding: 10px 14px;
+  backdrop-filter: blur(10px);
+  font-size: 0.6rem; color: var(--text-dim); line-height: 2;
+}
+.legend-row { display: flex; align-items: center; gap: 7px; }
+.legend-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+
+/* ─── HOVER TOOLTIP CANVAS ─── */
+#canvas-tip {
+  position: fixed; z-index: 150;
+  background: rgba(5,14,26,0.95);
+  border: 1px solid var(--border); border-radius: 6px;
+  padding: 7px 12px; pointer-events: none;
+  font-size: 0.65rem; color: var(--text);
+  display: none; max-width: 200px;
+  backdrop-filter: blur(10px);
+}
+
+/* ─── ZOOM CONTROLS ─── */
+#zoom-controls {
+  position: fixed; right: 20px; bottom: 80px; z-index: 100;
+  display: flex; flex-direction: column; gap: 4px;
+}
+.zoom-btn {
+  width: 32px; height: 32px; background: rgba(5,14,26,0.9);
+  border: 1px solid var(--border); color: var(--text-dim);
+  border-radius: 6px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1rem; font-family: 'Space Mono';
+  transition: all 0.15s;
+}
+.zoom-btn:hover { border-color: var(--cyan); color: var(--cyan); background: rgba(0,238,255,0.08); }
+</style>
+</head>
+<body>
+
+<!-- LOADER -->
+<div id="loader">
+  <div class="loader-icon">
+    <div class="loader-ring"></div>
+    <div class="loader-ring"></div>
+    <div class="loader-ring"></div>
+    <div class="loader-core"></div>
+  </div>
+  <div class="loader-text">Memoria Coral</div>
+  <div class="loader-sub">SINCRONIZANDO REGISTROS VIGENTES</div>
+  <div class="progress-track"><div id="progress-bar"></div></div>
+</div>
+
+<!-- TOP BAR -->
+<header id="topbar">
+  <a class="brand btn-tooltip" href="#" data-tip="INICIO">
+    <div class="brand-icon">
+      <!-- Coral node SVG logo inspired by the image -->
+      <svg viewBox="0 0 34 34" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <!-- Tentáculos -->
+        <line x1="17" y1="17" x2="17" y2="4"  stroke="#00eeff" stroke-width="0.7" opacity="0.6"/>
+        <line x1="17" y1="17" x2="28" y2="10" stroke="#ffc84a" stroke-width="0.7" opacity="0.6"/>
+        <line x1="17" y1="17" x2="28" y2="24" stroke="#ff4d5e" stroke-width="0.7" opacity="0.6"/>
+        <line x1="17" y1="17" x2="17" y2="30" stroke="#3b82f6" stroke-width="0.7" opacity="0.6"/>
+        <line x1="17" y1="17" x2="6"  y2="24" stroke="#a855f7" stroke-width="0.7" opacity="0.6"/>
+        <line x1="17" y1="17" x2="6"  y2="10" stroke="#00ffb2" stroke-width="0.7" opacity="0.6"/>
+        <!-- Nodos extremo -->
+        <circle cx="17" cy="4"  r="2.2" fill="#00eeff" opacity="0.8"/>
+        <circle cx="28" cy="10" r="2.2" fill="#ffc84a" opacity="0.8"/>
+        <circle cx="28" cy="24" r="2.2" fill="#ff4d5e" opacity="0.8"/>
+        <circle cx="17" cy="30" r="2.2" fill="#3b82f6" opacity="0.8"/>
+        <circle cx="6"  cy="24" r="2.2" fill="#a855f7" opacity="0.8"/>
+        <circle cx="6"  cy="10" r="2.2" fill="#00ffb2" opacity="0.8"/>
+        <!-- Núcleo -->
+        <circle cx="17" cy="17" r="4.5" fill="rgba(0,238,255,0.15)" stroke="#00eeff" stroke-width="1"/>
+        <circle cx="17" cy="17" r="2"   fill="#00eeff"/>
+      </svg>
+    </div>
+    <div>
+      <div class="brand-name">Memoria Coral</div>
+      <div class="brand-sub">GRAFO DE PENSAMIENTO V4</div>
+    </div>
+  </a>
+
+  <div class="spacer"></div>
+
+  <div class="top-badge">
+    <div class="pulse-dot"></div>
+    SOLO VIGENTES
+  </div>
+
+  <span id="entry-counter">0 NODOS</span>
+
+  <!-- Índice -->
+  <button class="icon-btn btn-tooltip active" id="btn-index" onclick="toggleIndex()" data-tip="ÍNDICE DE ENTRADAS">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/>
+      <line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>
+    </svg>
+  </button>
+
+  <!-- Analytics -->
+  <button class="icon-btn btn-tooltip" id="btn-analytics" onclick="togglePanel()" data-tip="ANALÍTICA">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+    </svg>
+  </button>
+
+  <!-- GitHub -->
+  <a class="icon-btn btn-tooltip" href="https://github.com/OscarFeMa/memoria-ia" target="_blank" rel="noopener" data-tip="VER EN GITHUB">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
+    </svg>
+  </a>
+</header>
+
+<!-- ÍNDICE PANEL -->
+<aside id="index-panel" class="open">
+  <div class="idx-header">
+    <h3>📋 Índice de Entradas</h3>
+    <button class="close-btn" onclick="toggleIndex()">✕</button>
+  </div>
+
+  <div class="idx-stats">
+    <div class="stat-card">
+      <div class="stat-val" id="stat-total" style="color:var(--cyan)">—</div>
+      <div class="stat-lbl">TOTAL</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-val" id="stat-high" style="color:var(--green)">—</div>
+      <div class="stat-lbl">CONFIANZA ALTA</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-val" id="stat-authors" style="color:var(--gold)">—</div>
+      <div class="stat-lbl">AGENTES IA</div>
+    </div>
+  </div>
+
+  <div class="idx-search">
+    <div class="search-wrap">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+      </svg>
+      <input id="search-input" type="text" placeholder="Buscar por clave o contenido…" oninput="renderIndex()">
+    </div>
+  </div>
+
+  <div class="idx-filters">
+    <div class="filter-label">TIPO</div>
+    <div class="chips" id="type-chips">
+      <button class="chip active" data-type="all" onclick="setTypeFilter('all')">TODOS</button>
+    </div>
+    <div class="filter-label" style="margin-top:8px">CONFIANZA</div>
+    <div class="chips">
+      <button class="chip active" data-conf="all" onclick="setConfFilter('all')">TODOS</button>
+      <button class="chip" data-conf="high" onclick="setConfFilter('high')">ALTA ≥0.8</button>
+      <button class="chip" data-conf="mid" onclick="setConfFilter('mid')">MEDIA</button>
+      <button class="chip" data-conf="low" onclick="setConfFilter('low')">BAJA &lt;0.5</button>
+    </div>
+  </div>
+
+  <div class="sort-bar">
+    <span class="sort-lbl">ORDEN:</span>
+    <button class="sort-btn active" data-sort="date-desc" onclick="setSort('date-desc')">↓ FECHA</button>
+    <button class="sort-btn" data-sort="date-asc"  onclick="setSort('date-asc')">↑ FECHA</button>
+    <button class="sort-btn" data-sort="conf-desc" onclick="setSort('conf-desc')">↓ CONFIANZA</button>
+    <button class="sort-btn" data-sort="alpha"     onclick="setSort('alpha')">A–Z</button>
+  </div>
+
+  <div id="index-list"></div>
+</aside>
+
+<!-- CANVAS PRINCIPAL -->
+<canvas id="canvas"></canvas>
+
+<!-- HOVER TOOLTIP -->
+<div id="canvas-tip"></div>
+
+<!-- LEYENDA -->
+<div id="legend">
+  <div class="legend-row"><div class="legend-dot" style="background:var(--cyan);box-shadow:0 0 6px var(--cyan)"></div>Confianza alta ≥ 0.8</div>
+  <div class="legend-row"><div class="legend-dot" style="background:var(--gold);box-shadow:0 0 6px var(--gold)"></div>Confianza media</div>
+  <div class="legend-row"><div class="legend-dot" style="background:var(--red);box-shadow:0 0 6px var(--red)"></div>Confianza baja</div>
+  <div class="legend-row"><div class="legend-dot" style="background:white;box-shadow:0 0 8px white"></div>Nodo seleccionado</div>
+</div>
+
+<!-- ZOOM CONTROLS -->
+<div id="zoom-controls">
+  <button class="zoom-btn" onclick="camScale=Math.min(5,camScale*1.25); event.stopPropagation()">+</button>
+  <button class="zoom-btn" onclick="camScale=Math.max(0.1,camScale*0.8); event.stopPropagation()">−</button>
+  <button class="zoom-btn" onclick="camX=0;camY=0;camScale=0.7; event.stopPropagation()" title="Reset">⌂</button>
+</div>
+
+<!-- ANALYTICS PANEL -->
+<div id="analytics-panel">
+  <div class="panel-handle" onclick="togglePanel()">
+    <span class="handle-label">📊 ANALÍTICA DE DATOS VIGENTES</span>
+    <span class="handle-arrow">▲</span>
+  </div>
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchChart('timeline',event)">CRONOLOGÍA</button>
+    <button class="tab-btn" onclick="switchChart('importance',event)">CONFIANZA</button>
+    <button class="tab-btn" onclick="switchChart('authors',event)">AUTORÍA IA</button>
+  </div>
+  <div class="chart-area">
+    <canvas id="mainChart"></canvas>
+  </div>
+</div>
+
+<!-- DETALLE SIDEBAR -->
+<aside id="sidebar">
+  <div class="sb-top">
+    <div style="font-family:'Syne';font-size:0.8rem;color:var(--cyan);letter-spacing:2px">DETALLE DE NODO</div>
+    <button class="close-btn" onclick="closeSidebar()">✕</button>
+  </div>
+
+  <!-- Decoración coral animada -->
+  <div class="sb-coral">
+    <canvas id="sb-coral-canvas" width="360" height="80"></canvas>
+  </div>
+
+  <div class="sb-body">
+    <div id="sb-type-badge">TIPO</div>
+    <div id="sb-title"></div>
+    <div id="sb-content"></div>
+
+    <div class="confidence-bar-wrap">
+      <div class="meta-k">ÍNDICE DE CONFIANZA</div>
+      <div class="conf-track"><div class="conf-fill" id="conf-fill"></div></div>
+      <div class="conf-pct" id="conf-pct"></div>
+    </div>
+
+    <div class="sb-meta-grid" id="sb-meta-grid"></div>
+  </div>
+</aside>
+
+<script>
+/* ═══════════════════════════════════════════════
+   CONFIGURACIÓN
+═══════════════════════════════════════════════ */
+const SUPABASE_URL = 'https://jdbzjapshomatwyasmig.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpkYnpqYXBzaG9tYXR3eWFzbWlnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4ODAzNzMsImV4cCI6MjA3OTQ1NjM3M30.AmHDH1dmJ3qme8VYN1EU3zjf7zZAKESal5NXWhX-KMk';
+const API_URL = `${SUPABASE_URL}/rest/v1/memory_entries?select=*&is_superseded=eq.false&order=created_at.asc`;
+
+/* ═══════════════════════════════════════════════
+   ESTADO
+═══════════════════════════════════════════════ */
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+let width, height;
+let nodes = [], links = [], rawDataCache = [];
+let camX = 0, camY = 0, camScale = 0.7;
+let selectedId = null;
+let hoveredId = null;
+let currentChart = null;
+let typeFilter = 'all';
+let confFilter = 'all';
+let sortMode = 'date-desc';
+let indexOpen = true;
+let analyticsOpen = false;
+
+// Color map para tipos de entrada
+const TYPE_COLORS = {
+  default: ['#00eeff', '#ffc84a', '#a855f7', '#3b82f6', '#ff4d5e', '#00ffb2', '#ff9500']
+};
+
+function getNodeColor(node) {
+  const s = node.confidence_score || 0;
+  if (s >= 0.8) return '#00eeff';
+  if (s >= 0.5) return '#ffc84a';
+  return '#ff4d5e';
+}
+function getNodeGlow(node) {
+  const s = node.confidence_score || 0;
+  if (s >= 0.8) return 'rgba(0,238,255,0.6)';
+  if (s >= 0.5) return 'rgba(255,200,74,0.6)';
+  return 'rgba(255,77,94,0.6)';
+}
+
+/* ═══════════════════════════════════════════════
+   CARGA
+═══════════════════════════════════════════════ */
+async function loadData() {
+  const bar = document.getElementById('progress-bar');
+  try {
+    bar.style.width = '20%';
+    const res = await fetch(API_URL, {
+      headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` }
+    });
+    bar.style.width = '70%';
+    const data = await res.json();
+    rawDataCache = Array.from(new Map(data.map(d => [d.id, d])).values());
+    bar.style.width = '100%';
+
+    document.getElementById('entry-counter').innerText = `${rawDataCache.length} NODOS`;
+
+    // Inicializar nodos con posición aleatoria pero en anillos según confianza
+    nodes = rawDataCache.map(d => {
+      const angle = Math.random() * Math.PI * 2;
+      const radius = 200 + Math.random() * 600;
+      return {
+        ...d,
+        x: Math.cos(angle) * radius,
+        y: Math.sin(angle) * radius,
+        vx: 0, vy: 0,
+        radius: (d.confidence_score || 0) >= 0.8 ? 6 : 4,
+        label: d.field_key || 'Entrada'
+      };
+    });
+
+    // Links entre nodos consecutivos + algunos cruzados
+    links = [];
+    for (let i = 0; i < nodes.length - 1; i++) {
+      links.push({ source: nodes[i], target: nodes[i+1] });
+    }
+    // Algunos links cruzados para dar aspecto de constelación
+    for (let i = 0; i < Math.min(30, nodes.length); i++) {
+      const a = Math.floor(Math.random() * nodes.length);
+      const b = Math.floor(Math.random() * nodes.length);
+      if (a !== b) links.push({ source: nodes[a], target: nodes[b], cross: true });
+    }
+
+    setTimeout(() => {
+      document.getElementById('loader').style.display = 'none';
+      populateTypeFilters();
+      updateStats();
+      renderIndex();
+      initCharts();
+      resize();
+      animate();
+      drawSbCoral();
+    }, 500);
+
+  } catch(e) {
+    document.getElementById('loader').innerHTML = `
+      <div style="color:var(--red);font-family:'Syne';text-align:center;padding:2rem">
+        <div style="font-size:2rem;margin-bottom:1rem">⚠</div>
+        <div style="letter-spacing:2px;font-weight:800">ERROR DE CONEXIÓN</div>
+        <div style="font-size:0.7rem;color:#666;margin-top:0.5rem">${e.message}</div>
+      </div>`;
+  }
+}
+
+/* ═══════════════════════════════════════════════
+   STATS
+═══════════════════════════════════════════════ */
+function updateStats() {
+  document.getElementById('stat-total').textContent = rawDataCache.length;
+  document.getElementById('stat-high').textContent = rawDataCache.filter(d => (d.confidence_score||0) >= 0.8).length;
+  const authors = new Set(rawDataCache.map(d => d.ia_author).filter(Boolean));
+  document.getElementById('stat-authors').textContent = authors.size;
+}
+
+/* ═══════════════════════════════════════════════
+   ÍNDICE
+═══════════════════════════════════════════════ */
+function populateTypeFilters() {
+  const types = [...new Set(rawDataCache.map(d => d.entry_type).filter(Boolean))];
+  const wrap = document.getElementById('type-chips');
+  types.forEach(t => {
+    const b = document.createElement('button');
+    b.className = 'chip'; b.dataset.type = t;
+    b.textContent = t.toUpperCase();
+    b.onclick = () => setTypeFilter(t);
+    wrap.appendChild(b);
+  });
+}
+
+function setTypeFilter(v) {
+  typeFilter = v;
+  document.querySelectorAll('#type-chips .chip').forEach(c => {
+    c.classList.toggle('active', c.dataset.type === v);
+  });
+  renderIndex();
+}
+
+function setConfFilter(v) {
+  confFilter = v;
+  document.querySelectorAll('[data-conf]').forEach(c => {
+    c.classList.toggle('active', c.dataset.conf === v);
+  });
+  renderIndex();
+}
+
+function setSort(v) {
+  sortMode = v;
+  document.querySelectorAll('[data-sort]').forEach(b => {
+    b.classList.toggle('active', b.dataset.sort === v);
+  });
+  renderIndex();
+}
+
+function getTypeColor(type) {
+  const map = {
+    insight: '#00ffb2', decision: '#a855f7', fact: '#ffc84a',
+    error: '#ff4d5e', memory: '#00eeff', context: '#3b82f6'
+  };
+  return map[(type||'').toLowerCase()] || '#94a3b8';
+}
+
+function renderIndex() {
+  const q = document.getElementById('search-input').value.toLowerCase();
+  let items = rawDataCache.filter(d => {
+    if (typeFilter !== 'all' && d.entry_type !== typeFilter) return false;
+    const s = d.confidence_score || 0;
+    if (confFilter === 'high' && s < 0.8) return false;
+    if (confFilter === 'mid' && (s < 0.5 || s >= 0.8)) return false;
+    if (confFilter === 'low' && s >= 0.5) return false;
+    if (q && !((d.field_key||'').toLowerCase().includes(q) || (d.field_value||'').toLowerCase().includes(q))) return false;
+    return true;
+  });
+
+  // Sorting
+  if (sortMode === 'date-desc') items.sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
+  if (sortMode === 'date-asc')  items.sort((a,b) => new Date(a.created_at) - new Date(b.created_at));
+  if (sortMode === 'conf-desc') items.sort((a,b) => (b.confidence_score||0) - (a.confidence_score||0));
+  if (sortMode === 'alpha')     items.sort((a,b) => (a.field_key||'').localeCompare(b.field_key||''));
+
+  const list = document.getElementById('index-list');
+
+  if (!items.length) {
+    list.innerHTML = `<div class="empty-state">No se encontraron entradas<br>con los filtros actuales.</div>`;
+    return;
+  }
+
+  list.innerHTML = items.map(d => {
+    const c = getNodeColor(d);
+    const tc = getTypeColor(d.entry_type);
+    const score = ((d.confidence_score||0)*100).toFixed(0);
+    const date = new Date(d.created_at).toLocaleDateString('es-ES', {day:'2-digit',month:'short',year:'2-digit'});
+    const isSel = d.id === selectedId;
+    return `
+      <div class="entry-item ${isSel?'selected':''}" onclick="selectFromIndex('${d.id}')">
+        <div class="entry-top">
+          <div class="entry-dot" style="background:${c};box-shadow:0 0 5px ${c}"></div>
+          <div class="entry-key">${d.field_key || 'Sin clave'}</div>
+          <div class="entry-score">${score}%</div>
+        </div>
+        <div class="entry-bottom">
+          <span class="entry-tag" style="border-color:${tc};color:${tc};background:${tc}18">${(d.entry_type||'—').toUpperCase()}</span>
+          <span class="entry-author">${d.ia_author||'—'}</span>
+          <span class="entry-date">${date}</span>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function selectFromIndex(id) {
+  selectedId = id;
+  const node = nodes.find(n => n.id === id);
+  if (node) {
+    openSidebar(node);
+    // Volar hacia el nodo
+    camX = -(node.x * camScale);
+    camY = -(node.y * camScale);
+  }
+  renderIndex();
+}
+
+function toggleIndex() {
+  indexOpen = !indexOpen;
+  document.getElementById('index-panel').classList.toggle('open', indexOpen);
+  document.getElementById('btn-index').classList.toggle('active', indexOpen);
+}
+
+/* ═══════════════════════════════════════════════
+   ANALYTICS
+═══════════════════════════════════════════════ */
+function togglePanel() {
+  analyticsOpen = !analyticsOpen;
+  document.getElementById('analytics-panel').classList.toggle('open', analyticsOpen);
+  document.getElementById('btn-analytics').classList.toggle('active', analyticsOpen);
+  if (analyticsOpen && !currentChart) initCharts();
+}
+
+function initCharts() { switchChart('timeline'); }
+
+function switchChart(type, event) {
+  if (currentChart) { currentChart.destroy(); currentChart = null; }
+  if (event) {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    event.target.classList.add('active');
+  }
+
+  const c = document.getElementById('mainChart').getContext('2d');
+  const scaleStyle = {
+    grid: { color: 'rgba(255,255,255,0.04)' },
+    ticks: { color: '#6a90a8', font: { family: 'Space Mono', size: 9 } }
+  };
+
+  let cfg = {};
+  if (type === 'timeline') {
+    const groups = rawDataCache.reduce((a, d) => {
+      const k = d.created_at.split('T')[0]; a[k] = (a[k]||0)+1; return a;
+    }, {});
+    cfg = { type: 'line', data: {
+      labels: Object.keys(groups),
+      datasets: [{ data: Object.values(groups), borderColor: '#00eeff',
+        backgroundColor: 'rgba(0,238,255,0.07)', fill: true,
+        pointRadius: 4, pointBackgroundColor: '#00eeff',
+        pointBorderColor: 'transparent', tension: 0.4 }]
+    }, options: { responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{display:false} }, scales:{ y:scaleStyle, x:{...scaleStyle,grid:{display:false}} } }};
+  } else if (type === 'importance') {
+    const counts = [0,0,0];
+    rawDataCache.forEach(d => {
+      const s = d.confidence_score||0;
+      if(s<0.5) counts[0]++; else if(s<0.8) counts[1]++; else counts[2]++;
+    });
+    cfg = { type: 'bar', data: {
+      labels: ['BAJA  <0.5','MEDIA 0.5–0.8','ALTA  ≥0.8'],
+      datasets: [{ data: counts, backgroundColor: ['#ff4d5e','#ffc84a','#00eeff'], borderRadius: 5, borderSkipped: false }]
+    }, options: { responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{display:false} }, scales:{ y:scaleStyle, x:{...scaleStyle,grid:{display:false}} } }};
+  } else {
+    const auths = rawDataCache.reduce((a,d) => { a[d.ia_author]=(a[d.ia_author]||0)+1; return a; }, {});
+    const colors = ['#00eeff','#ffc84a','#a855f7','#3b82f6','#ff4d5e','#00ffb2'];
+    cfg = { type: 'doughnut', data: {
+      labels: Object.keys(auths),
+      datasets: [{ data: Object.values(auths), backgroundColor: colors, borderWidth: 0, hoverOffset: 12 }]
+    }, options: { responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{ position:'right', labels:{ color:'#dff4f8', font:{ family:'Space Mono', size:9 }, padding:10, boxWidth:10 } } } }};
+  }
+  currentChart = new Chart(c, cfg);
+}
+
+/* ═══════════════════════════════════════════════
+   CANVAS RENDER
+═══════════════════════════════════════════════ */
+// Coral branch drawing helper
+function drawCoralBranch(ctx, x, y, angle, length, depth, color) {
+  if (depth <= 0 || length < 2) return;
+  const endX = x + Math.cos(angle) * length;
+  const endY = y + Math.sin(angle) * length;
+  ctx.beginPath();
+  ctx.moveTo(x, y);
+  ctx.lineTo(endX, endY);
+  ctx.strokeStyle = color;
+  ctx.lineWidth = depth * 0.4;
+  ctx.globalAlpha = 0.2 + depth * 0.08;
+  ctx.stroke();
+  ctx.globalAlpha = 1;
+  const spread = 0.4 + Math.random() * 0.2;
+  drawCoralBranch(ctx, endX, endY, angle - spread, length * 0.65, depth-1, color);
+  drawCoralBranch(ctx, endX, endY, angle + spread, length * 0.65, depth-1, color);
+  if (depth > 1 && Math.random() > 0.4) {
+    drawCoralBranch(ctx, endX, endY, angle, length * 0.6, depth-1, color);
+  }
+}
+
+function animate() {
+  ctx.clearRect(0, 0, width, height);
+
+  // Fondo estrellas (partículas estáticas)
+  if (!animate._stars) {
+    animate._stars = Array.from({length: 120}, () => ({
+      x: Math.random() * width, y: Math.random() * height,
+      r: Math.random() * 1.2, a: Math.random()
+    }));
+  }
+  animate._stars.forEach(s => {
+    ctx.beginPath();
+    ctx.arc(s.x, s.y, s.r, 0, Math.PI*2);
+    ctx.fillStyle = `rgba(180,220,240,${s.a * 0.4})`;
+    ctx.fill();
+  });
+
+  ctx.save();
+  ctx.translate(width/2 + camX, height/2 + camY);
+  ctx.scale(camScale, camScale);
+
+  // Física simple
+  nodes.forEach(n => {
+    nodes.forEach(o => {
+      if (n === o) return;
+      const dx = n.x - o.x, dy = n.y - o.y;
+      const dist = Math.sqrt(dx*dx + dy*dy) || 1;
+      if (dist < 140) { n.vx += (dx/dist)*0.5; n.vy += (dy/dist)*0.5; }
+    });
+    n.vx -= n.x * 0.006; n.vy -= n.y * 0.006;
+    n.vx *= 0.88; n.vy *= 0.88;
+    n.x += n.vx; n.y += n.vy;
+  });
+
+  // Links
+  links.forEach(l => {
+    const isCross = l.cross;
+    ctx.beginPath();
+    ctx.moveTo(l.source.x, l.source.y);
+    ctx.lineTo(l.target.x, l.target.y);
+    ctx.strokeStyle = isCross ? 'rgba(255,200,74,0.03)' : 'rgba(0,238,255,0.05)';
+    ctx.lineWidth = 1 / camScale;
+    ctx.stroke();
+  });
+
+  // Nodos
+  nodes.forEach(n => {
+    const isSel = n.id === selectedId;
+    const isHov = n.id === hoveredId;
+    const color = getNodeColor(n);
+    const r = n.radius + (isSel ? 4 : isHov ? 2 : 0);
+
+    // Tentáculos de coral (solo en zoom suficiente o seleccionado)
+    if (camScale > 0.6 || isSel || isHov) {
+      const arms = isSel ? 6 : 3;
+      for (let i = 0; i < arms; i++) {
+        const ang = (Math.PI * 2 / arms) * i + Date.now() * 0.0002;
+        drawCoralBranch(ctx, n.x, n.y, ang, r * 2.5, isSel ? 4 : 2, color);
+      }
+    }
+
+    // Halo exterior
+    if (isSel || isHov) {
+      ctx.beginPath();
+      ctx.arc(n.x, n.y, r + 6, 0, Math.PI*2);
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 1;
+      ctx.globalAlpha = 0.3;
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+    }
+
+    // Glow
+    const grd = ctx.createRadialGradient(n.x, n.y, 0, n.x, n.y, r * 3);
+    grd.addColorStop(0, color.replace(')', ',0.3)').replace('rgb', 'rgba'));
+    grd.addColorStop(1, 'transparent');
+    ctx.beginPath(); ctx.arc(n.x, n.y, r*3, 0, Math.PI*2);
+    ctx.fillStyle = grd; ctx.fill();
+
+    // Núcleo
+    ctx.shadowBlur = isSel ? 20 : isHov ? 12 : 6;
+    ctx.shadowColor = color;
+    ctx.beginPath(); ctx.arc(n.x, n.y, r, 0, Math.PI*2);
+    ctx.fillStyle = isSel ? 'white' : color;
+    ctx.fill();
+    ctx.shadowBlur = 0;
+
+    // Label
+    if (camScale > 0.55 || isSel) {
+      ctx.fillStyle = isSel ? '#fff' : isHov ? 'rgba(255,255,255,0.9)' : 'rgba(200,230,240,0.45)';
+      ctx.font = `${isSel ? 'bold ' : ''}${Math.round(10/camScale)}px Space Mono`;
+      const label = n.label.length > 22 ? n.label.substring(0,22)+'…' : n.label;
+      ctx.fillText(label.toUpperCase(), n.x + r + 4, n.y + 4);
+    }
+  });
+
+  ctx.restore();
+  requestAnimationFrame(animate);
+}
+
+/* ═══════════════════════════════════════════════
+   SIDEBAR CORAL DECORATION
+═══════════════════════════════════════════════ */
+function drawSbCoral() {
+  const c = document.getElementById('sb-coral-canvas');
+  c.width = 360; c.height = 80;
+  const cx = c.getContext('2d');
+  const colors = ['#00eeff','#ffc84a','#a855f7','#3b82f6','#ff4d5e','#00ffb2'];
+  for (let i = 0; i < 6; i++) {
+    const x = 30 + i * 55;
+    drawCoralBranch(cx, x, 80, -Math.PI/2 + (Math.random()-0.5)*0.4, 25, 4, colors[i]);
+  }
+}
+
+/* ═══════════════════════════════════════════════
+   SIDEBAR ABRIR/CERRAR
+═══════════════════════════════════════════════ */
+function openSidebar(node) {
+  selectedId = node.id;
+  const score = node.confidence_score || 0;
+  const pct = (score * 100).toFixed(1);
+  const tc = getTypeColor(node.entry_type);
+  const color = getNodeColor(node);
+
+  document.getElementById('sb-type-badge').textContent = (node.entry_type || 'INSIGHT').toUpperCase();
+  document.getElementById('sb-type-badge').style.borderColor = tc;
+  document.getElementById('sb-type-badge').style.color = tc;
+  document.getElementById('sb-type-badge').style.background = tc + '15';
+
+  document.getElementById('sb-title').textContent = node.field_key;
+  document.getElementById('sb-content').textContent = node.field_value;
+
+  document.getElementById('conf-fill').style.width = pct + '%';
+  document.getElementById('conf-fill').style.background =
+    `linear-gradient(90deg, ${color}, ${color}aa)`;
+  document.getElementById('conf-pct').textContent = pct + '%';
+  document.getElementById('conf-pct').style.color = color;
+
+  const date = new Date(node.created_at).toLocaleString('es-ES');
+  document.getElementById('sb-meta-grid').innerHTML = `
+    <div class="meta-cell">
+      <div class="meta-k">ID ORIGEN</div>
+      <div class="meta-v">${String(node.id).substring(0,10)}…</div>
+    </div>
+    <div class="meta-cell">
+      <div class="meta-k">AGENTE IA</div>
+      <div class="meta-v">${(node.ia_author||'—').toUpperCase()}</div>
+    </div>
+    <div class="meta-cell" style="grid-column:1/-1">
+      <div class="meta-k">REGISTRO</div>
+      <div class="meta-v">${date}</div>
+    </div>`;
+
+  document.getElementById('sidebar').classList.add('open');
+  renderIndex();
+  drawSbCoral();
+}
+
+function closeSidebar() {
+  selectedId = null;
+  document.getElementById('sidebar').classList.remove('open');
+  renderIndex();
+}
+
+/* ═══════════════════════════════════════════════
+   INTERACCIÓN CANVAS
+═══════════════════════════════════════════════ */
+function resize() {
+  width = window.innerWidth; height = window.innerHeight;
+  canvas.width = width * devicePixelRatio;
+  canvas.height = height * devicePixelRatio;
+  ctx.scale(devicePixelRatio, devicePixelRatio);
+  animate._stars = null; // Reset stars on resize
+}
+
+canvas.addEventListener('wheel', e => {
+  camScale = Math.max(0.1, Math.min(5, camScale * (e.deltaY > 0 ? 0.9 : 1.1)));
+}, { passive: true });
+
+let isDragging = false, lastMouse = null, dragMoved = false;
+canvas.addEventListener('mousedown', e => {
+  isDragging = true; lastMouse = {x: e.clientX, y: e.clientY}; dragMoved = false;
+});
+window.addEventListener('mouseup', () => isDragging = false);
+window.addEventListener('mousemove', e => {
+  if (isDragging) {
+    camX += e.clientX - lastMouse.x;
+    camY += e.clientY - lastMouse.y;
+    lastMouse = {x: e.clientX, y: e.clientY};
+    dragMoved = true;
+  } else {
+    // Hover detection
+    const mx = (e.clientX - width/2 - camX) / camScale;
+    const my = (e.clientY - height/2 - camY) / camScale;
+    const found = nodes.find(n => Math.hypot(n.x - mx, n.y - my) < 20);
+    hoveredId = found ? found.id : null;
+    const tip = document.getElementById('canvas-tip');
+    if (found) {
+      tip.style.display = 'block';
+      tip.style.left = (e.clientX + 14) + 'px';
+      tip.style.top = (e.clientY - 10) + 'px';
+      tip.innerHTML = `<strong style="color:${getNodeColor(found)}">${found.label}</strong><br>
+        <span style="color:#6a90a8;font-size:0.6rem">${(found.entry_type||'—').toUpperCase()} · ${((found.confidence_score||0)*100).toFixed(0)}%</span>`;
+    } else {
+      tip.style.display = 'none';
+    }
+  }
+});
+
+canvas.addEventListener('click', e => {
+  if (dragMoved) return;
+  const mx = (e.clientX - width/2 - camX) / camScale;
+  const my = (e.clientY - height/2 - camY) / camScale;
+  const found = nodes.find(n => Math.hypot(n.x - mx, n.y - my) < 20);
+  if (found) { openSidebar(found); }
+  else { selectedId = null; closeSidebar(); }
+});
+
+// Touch support
+let lastTouchDist = null;
+canvas.addEventListener('touchstart', e => {
+  if (e.touches.length === 1) { isDragging = true; lastMouse = {x: e.touches[0].clientX, y: e.touches[0].clientY}; dragMoved = false; }
+  if (e.touches.length === 2) { lastTouchDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY); }
+}, { passive: true });
+canvas.addEventListener('touchmove', e => {
+  if (e.touches.length === 1 && isDragging) {
+    camX += e.touches[0].clientX - lastMouse.x;
+    camY += e.touches[0].clientY - lastMouse.y;
+    lastMouse = {x: e.touches[0].clientX, y: e.touches[0].clientY};
+    dragMoved = true;
+  }
+  if (e.touches.length === 2) {
+    const d = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+    if (lastTouchDist) camScale = Math.max(0.1, Math.min(5, camScale * (d / lastTouchDist)));
+    lastTouchDist = d;
+  }
+}, { passive: true });
+canvas.addEventListener('touchend', () => { isDragging = false; lastTouchDist = null; });
+
+window.addEventListener('resize', resize);
+loadData();
+</script>
+</body>
+</html>
